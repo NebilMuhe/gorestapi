@@ -15,7 +15,7 @@ type server struct {
 
 type UserHandler interface {
 	RegisterUserHandler(ctx *gin.Context)
-	// LoginUserHandler(ctx *gin.Context)
+	LoginUserHandler(ctx *gin.Context)
 }
 
 type userHandler struct {
@@ -58,4 +58,32 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, registeredUser)
+}
+
+// LoginUserHandler implements UserHandler.
+func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
+	var user service.UserLogin
+
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		err = errors.ErrBadRequest.Wrap(err, "invalid input")
+		ctx.Error(err)
+		ctx.Abort()
+		return
+	}
+
+	token, err := u.service.LoginUser(ctx, user)
+
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
+			ctx.Error(err)
+			ctx.Abort()
+			return
+		}
+		ctx.Error(err)
+		ctx.Abort()
+		return
+	}
+
+	ctx.JSON(http.StatusOK, token)
 }
