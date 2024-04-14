@@ -47,6 +47,25 @@ func (q *Queries) FindBYUsername(ctx context.Context, username string) (User, er
 	return i, err
 }
 
+const loginUser = `-- name: LoginUser :one
+SELECT id, username, email, password
+FROM users
+WHERE username = $1
+LIMIT 1
+`
+
+func (q *Queries) LoginUser(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, loginUser, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
+}
+
 const registerUser = `-- name: RegisterUser :one
 INSERT INTO users (
   username,
