@@ -51,7 +51,6 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 			ctx.Abort()
 			return
 		}
-
 		ctx.Error(err)
 		ctx.Abort()
 		return

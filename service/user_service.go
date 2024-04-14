@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -9,8 +10,10 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/joho/godotenv"
+	"github.com/joomcode/errorx"
 	"gitlab.com/Nebil/errors"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository interface {
@@ -85,6 +88,14 @@ func GenerateRequestID(ctx *gin.Context) (string, error) {
 	return requestID, nil
 }
 
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil {
+		return "", errorx.Decorate(err, "error occured on hashing password")
+	}
+	return string(bytes), nil
+}
+
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	err := user.Validate()
@@ -98,8 +109,19 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 		err = errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user exists"), "user already exists")
 		return &User{}, err
 	}
+
+	password, err := HashPassword(user.Password)
+	if err != nil {
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
+		return &User{}, err
+	}
+	user.Password = password
+
 	us, err := u.repo.Register(ctx, &user)
 	if err != nil {
+		if err == context.DeadlineExceeded {
+			return &User{}, err
+		}
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create")
 		return &User{}, err
 	}

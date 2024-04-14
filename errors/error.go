@@ -33,6 +33,11 @@ var Errorsvalue = []ErrorResponse{
 		Status:    http.StatusBadRequest,
 		Error:     "INVALID_CREDENTIAL",
 	},
+	{
+		ErrorType: ErrInternalServer,
+		Status:    http.StatusInternalServerError,
+		Error:     "UNABLE_TO_CREATE",
+	},
 }
 
 var (
@@ -46,4 +51,6 @@ var (
 	ErrInvalidInput      = errorx.NewType(invalidInput, "invalid username email or password")
 	userAlreadyExists    = errorx.NewNamespace("user already exists")
 	ErrUserAlreadyExists = errorx.NewType(userAlreadyExists, "user already exists")
+	internalServer       = errorx.NewNamespace("internal server error")
+	ErrInternalServer    = errorx.NewType(internalServer, "internal server error")
 )

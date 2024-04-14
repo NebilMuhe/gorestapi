@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "gitlab.com/Nebil/db/sqlc"
@@ -39,8 +40,40 @@ func ConnectDB(driver, url string) (*sql.DB, error) {
 }
 
 // Register implements service.UserRepository.
-func (u *userRepository) Register(*gin.Context, *service.User) (*service.User, error) {
-	return &service.User{}, nil
+func (u *userRepository) Register(ctx *gin.Context, user *service.User) (*service.User, error) {
+	c := ctx.Request.Context()
+	errChan := make(chan error)
+	resChan := make(chan *service.User)
+
+	go func() {
+		time.Sleep(time.Second * 7)
+		arg := db.RegisterUserParams{
+			Username: user.Username,
+			Email:    user.Email,
+			Password: user.Password,
+		}
+		us, err := u.queries.RegisterUser(ctx, arg)
+
+		if err != nil {
+			errChan <- err
+			return
+		}
+		resChan <- &service.User{
+			Username: us.Username,
+			Email:    us.Email,
+		}
+	}()
+
+	select {
+	case <-c.Done():
+		err := c.Err()
+		return &service.User{}, err
+	case err := <-errChan:
+		return &service.User{}, err
+	case res := <-resChan:
+		return res, nil
+	}
+
 }
 
 // Exists implements service.UserRepository.
