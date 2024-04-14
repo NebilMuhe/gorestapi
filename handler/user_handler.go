@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/Nebil/errors"
@@ -56,5 +56,5 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println(registeredUser)
+	ctx.JSON(http.StatusCreated, registeredUser)
 }

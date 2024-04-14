@@ -100,13 +100,14 @@ func HashPassword(password string) (string, error) {
 func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	err := user.Validate()
 	if err != nil {
+		u.logger.Error("validation failed", zap.Error(err))
 		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
 		return &User{}, err
 	}
 
 	exist, _ := u.repo.Exists(ctx, &user)
 	if exist {
-		err = errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user exists"), "user already exists")
+		err = errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user already exists"), "user already exists")
 		return &User{}, err
 	}
 

@@ -38,6 +38,11 @@ var Errorsvalue = []ErrorResponse{
 		Status:    http.StatusInternalServerError,
 		Error:     "UNABLE_TO_CREATE",
 	},
+	{
+		ErrorType: ErrUserAlreadyExists,
+		Status:    http.StatusConflict,
+		Error:     "UNABLE_TO_CREATE",
+	},
 }
 
 var (

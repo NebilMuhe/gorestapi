@@ -35,6 +35,7 @@ func errorHandlerMiddleware(ctx *gin.Context) {
 	if err != nil {
 		e := err.Unwrap()
 		for _, er := range errors.Errorsvalue {
+
 			if errorx.IsOfType(e, er.ErrorType) {
 				errr := errorx.Cast(e)
 				ctx.JSON(er.Status, gin.H{

@@ -2,7 +2,6 @@ package data
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -78,15 +77,11 @@ func (u *userRepository) Register(ctx *gin.Context, user *service.User) (*servic
 
 // Exists implements service.UserRepository.
 func (u *userRepository) Exists(ctx *gin.Context, user *service.User) (bool, error) {
-	_, err := u.queries.FindBYEmail(ctx, user.Email)
-	if err != nil {
-		fmt.Println(err)
-		return false, err
-	}
-	_, err = u.queries.FindBYUsername(ctx, user.Username)
-	if err != nil {
-		fmt.Println(err)
-		return false, err
+	usr, _ := u.queries.FindBYUsername(ctx, user.Username)
+	us, _ := u.queries.FindBYEmail(ctx, user.Email)
+
+	if usr.Username == "" && us.Email == "" {
+		return false, nil
 	}
 	return true, nil
 }
