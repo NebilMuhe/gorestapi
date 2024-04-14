@@ -18,7 +18,7 @@ type UserRepository interface {
 }
 
 type UserService interface {
-	RegisterUser(ctx *gin.Context, user User) error
+	RegisterUser(ctx *gin.Context, user User) (*User, error)
 }
 
 type userService struct {
@@ -85,6 +85,6 @@ func GenerateRequestID(ctx *gin.Context) (string, error) {
 }
 
 // RegisterUser implements UserService.
-func (u *userService) RegisterUser(ctx *gin.Context, user User) error {
-	return nil
+func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
+	return &User{}, nil
 }

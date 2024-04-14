@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"gitlab.com/Nebil/errors"
 	"gitlab.com/Nebil/service"
@@ -39,5 +42,17 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	// u.service.RegisterUser(ctx, user)
+	registeredUser, err := u.service.RegisterUser(ctx, user)
+
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			fmt.Println("deadline ", err)
+			return
+		}
+
+		fmt.Println("error", err)
+		return
+	}
+
+	fmt.Println(registeredUser)
 }
