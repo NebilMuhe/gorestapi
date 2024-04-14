@@ -46,6 +46,12 @@ type (
 		Username string `json:"username,omitempty"`
 		Password string `json:"password,omitempty"`
 	}
+	RefToken struct {
+		ID            string `json:"id,omitempty"`
+		Username      string `json:"username,omitempty"`
+		Refresh_Token string `json:"refresh_token,omitempty"`
+		IsUsed        bool   `json:"is_used,omitempty"`
+	}
 )
 
 func NewUserService(repo UserRepository, logger zap.Logger) UserService {
