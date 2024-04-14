@@ -149,3 +149,12 @@ func (u *userRepository) Refresh(ctx *gin.Context, username string, refresh_toke
 		return res, nil
 	}
 }
+
+// IsLoggedIn implements service.UserRepository.
+func (u *userRepository) IsLoggedIn(ctx *gin.Context, username string) (bool, error) {
+	session, _ := u.queries.IsLoggedIn(ctx, username)
+	if session.Username == "" {
+		return false, nil
+	}
+	return true, nil
+}

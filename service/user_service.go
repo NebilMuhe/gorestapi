@@ -24,6 +24,7 @@ type UserRepository interface {
 	Login(*gin.Context, *UserLogin) (*UserLogin, error)
 	Refresh(ctx *gin.Context, username, refresh_token string) (*RefToken, error)
 	Exists(*gin.Context, *User) (bool, error)
+	IsLoggedIn(ctx *gin.Context, username string) (bool, error)
 }
 
 type UserService interface {
@@ -219,6 +220,12 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 	if err != nil {
 		u.logger.Error("validation failed", zap.Error(err))
 		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
+		return nil, err
+	}
+
+	loggedIn, _ := u.repo.IsLoggedIn(ctx, user.Username)
+	if loggedIn {
+		err = errors.ErrUserAlreadyLoggedIn.Wrap(errors.ErrUserAlreadyLoggedIn.New("user already logged in"), "user already logged in")
 		return nil, err
 	}
 
