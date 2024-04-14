@@ -43,6 +43,16 @@ var Errorsvalue = []ErrorResponse{
 		Status:    http.StatusConflict,
 		Error:     "UNABLE_TO_CREATE",
 	},
+	{
+		ErrorType: ErrNotFound,
+		Status:    http.StatusNotFound,
+		Error:     "USER_NOT_FOUND",
+	},
+	{
+		ErrorType: ErrUnableToRead,
+		Status:    http.StatusInternalServerError,
+		Error:     "UNABLE_TO_READ",
+	},
 }
 
 var (
@@ -58,4 +68,8 @@ var (
 	ErrUserAlreadyExists = errorx.NewType(userAlreadyExists, "user already exists")
 	internalServer       = errorx.NewNamespace("internal server error")
 	ErrInternalServer    = errorx.NewType(internalServer, "internal server error")
+	notFound             = errorx.NewNamespace("not found")
+	ErrNotFound          = errorx.NewType(notFound, "not found")
+	unableToRead         = errorx.NewNamespace("unable to read")
+	ErrUnableToRead      = errorx.NewType(unableToRead, "unable to read")
 )

@@ -17,7 +17,7 @@ import (
 
 type UserRepository interface {
 	Register(*gin.Context, *User) (*User, error)
-	Login(*gin.Context, *UserLogin) (map[string]string, error)
+
 	Exists(*gin.Context, *User) (bool, error)
 }
 
@@ -34,11 +34,6 @@ type (
 	User struct {
 		Username string `json:"username,omitempty"`
 		Email    string `json:"email,omitempty"`
-		Password string `json:"password,omitempty"`
-	}
-	UserLogin struct {
-		ID       string `json:"id,omitempty"`
-		Username string `json:"username,omitempty"`
 		Password string `json:"password,omitempty"`
 	}
 )
@@ -107,20 +102,20 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	if err != nil {
 		u.logger.Error("validation failed", zap.Error(err))
 		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
-		return &User{}, err
+		return nil, err
 	}
 
 	exist, _ := u.repo.Exists(ctx, &user)
 	if exist {
 		err = errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user already exists"), "user already exists")
-		return &User{}, err
+		return nil, err
 	}
 
 	password, err := HashPassword(user.Password)
 	if err != nil {
 		u.logger.Error("unable to hash password", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
-		return &User{}, err
+		return nil, err
 	}
 	user.Password = password
 
@@ -128,10 +123,10 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	if err != nil {
 		u.logger.Error("unable to register", zap.Error(err))
 		if err == context.DeadlineExceeded {
-			return &User{}, err
+			return nil, err
 		}
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create")
-		return &User{}, err
+		return nil, err
 	}
 	return us, nil
 }

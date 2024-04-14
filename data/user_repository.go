@@ -64,9 +64,9 @@ func (u *userRepository) Register(ctx *gin.Context, user *service.User) (*servic
 	select {
 	case <-c.Done():
 		err := c.Err()
-		return &service.User{}, err
+		return nil, err
 	case err := <-errChan:
-		return &service.User{}, err
+		return nil, err
 	case res := <-resChan:
 		return res, nil
 	}
@@ -82,9 +82,4 @@ func (u *userRepository) Exists(ctx *gin.Context, user *service.User) (bool, err
 		return false, nil
 	}
 	return true, nil
-}
-
-// Login implements service.UserRepository.
-func (u *userRepository) Login(*gin.Context, *service.UserLogin) (map[string]string, error) {
-	return nil, nil
 }
