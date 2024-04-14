@@ -7,6 +7,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 type UserRepository interface {
@@ -17,6 +18,11 @@ type UserService interface {
 	RegisterUser(ctx *gin.Context, user User) error
 }
 
+type userService struct {
+	repo   UserRepository
+	logger zap.Logger
+}
+
 type (
 	User struct {
 		Username string `json:"username,omitempty"`
@@ -24,6 +30,10 @@ type (
 		Password string `json:"password,omitempty"`
 	}
 )
+
+func NewUserService(repo UserRepository, logger zap.Logger) UserService {
+	return &userService{repo: repo, logger: logger}
+}
 
 var usernameRule = []validation.Rule{
 	validation.Required.Error("username must be unique and alphanumeric, with at least 5 characters"),
@@ -58,5 +68,10 @@ func LoadEnv() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// RegisterUser implements UserService.
+func (u *userService) RegisterUser(ctx *gin.Context, user User) error {
 	return nil
 }
