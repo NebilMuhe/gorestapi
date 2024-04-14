@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq"
 	"gitlab.com/Nebil/data"
@@ -37,7 +38,7 @@ func main() {
 	defer db.Close()
 
 	router := handler.NewServer()
-
+	router.Router.Use(handler.TimeoutMiddleware(time.Second * 2))
 	router.Router.Run(":" + PORT)
 
 }
