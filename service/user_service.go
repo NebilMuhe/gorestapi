@@ -23,6 +23,7 @@ type UserRepository interface {
 
 type UserService interface {
 	RegisterUser(ctx *gin.Context, user User) (*User, error)
+	LoginUser(ctx *gin.Context, user UserLogin) (map[string]string, error)
 }
 
 type userService struct {
@@ -73,6 +74,12 @@ func (u User) Validate() error {
 		validation.Field(&u.Email, emailRule...),
 		validation.Field(&u.Password, passwordRule...),
 	)
+}
+
+func (u UserLogin) Validate() error {
+	return validation.ValidateStruct(&u,
+		validation.Field(&u.Username, usernameRule...),
+		validation.Field(&u.Password, passwordRule...))
 }
 
 func LoadEnv() error {
