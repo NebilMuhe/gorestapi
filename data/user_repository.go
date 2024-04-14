@@ -158,3 +158,13 @@ func (u *userRepository) IsLoggedIn(ctx *gin.Context, username string) (bool, er
 	}
 	return true, nil
 }
+
+// CheckToken implements service.UserRepository.
+func (u *userRepository) CheckToken(ctx *gin.Context, username string) (string, error) {
+	session, err := u.queries.IsLoggedIn(ctx, username)
+	if err != nil {
+		return "", err
+	}
+
+	return session.RefreshToken, nil
+}

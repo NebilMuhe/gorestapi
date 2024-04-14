@@ -46,6 +46,7 @@ func main() {
 
 	router.Router.POST("/api/register", handlers.RegisterUserHandler)
 	router.Router.POST("/api/login", handlers.LoginUserHandler)
+	router.Router.POST("/api/refresh", handlers.RefreshTokenHandler)
 	router.Router.Run(":" + PORT)
 
 }

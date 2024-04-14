@@ -38,3 +38,4 @@ SELECT *
 FROM sessions
 WHERE username = $1
 LIMIT 1;
+

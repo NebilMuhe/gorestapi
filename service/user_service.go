@@ -14,6 +14,7 @@ import (
 	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
+	"github.com/joomcode/errorx"
 	"gitlab.com/Nebil/errors"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -25,11 +26,13 @@ type UserRepository interface {
 	Refresh(ctx *gin.Context, username, refresh_token string) (*RefToken, error)
 	Exists(*gin.Context, *User) (bool, error)
 	IsLoggedIn(ctx *gin.Context, username string) (bool, error)
+	CheckToken(ctx *gin.Context, username string) (string, error)
 }
 
 type UserService interface {
 	RegisterUser(ctx *gin.Context, user User) (*User, error)
 	LoginUser(ctx *gin.Context, user UserLogin) (map[string]string, error)
+	RefreshToken(ctx *gin.Context, tokeString string) (map[string]string, error)
 }
 
 type userService struct {
@@ -179,6 +182,49 @@ func GenerateRefreshToken(id, username string) (string, error) {
 	return rt, nil
 }
 
+func VerifyToken(tokenString string) error {
+	secretKey := []byte(os.Getenv("SECRET_KEY"))
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+
+	if err != nil {
+		return errors.ErrBadRequest.Wrap(err, "invalid token")
+	}
+
+	if !token.Valid {
+		return errors.ErrBadRequest.Wrap(err, "invalid token")
+	}
+
+	return nil
+}
+
+func ExtractUsernameAndID(ctx *gin.Context, tokenString string) (map[string]string, error) {
+	secretKey := []byte(os.Getenv("SECRET_KEY"))
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.ErrBadRequest.Wrap(errorx.IllegalState.New("unexpected signing method: %v", token.Header["alg"]), "invalid header method")
+		}
+
+		return secretKey, nil
+	})
+
+	if err != nil {
+		return nil, errors.ErrBadRequest.Wrap(err, "bad request")
+	}
+
+	var username string
+	var id string
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if int(claims["sub"].(float64)) == 1 {
+			id = claims["id"].(string)
+			username = claims["username"].(string)
+		}
+	}
+	return map[string]string{"id": id, "username": username}, nil
+}
+
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	err := user.Validate()
@@ -265,7 +311,7 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 		return nil, err
 	}
 
-	refreshResult := rtToken + refreshToken[72:]
+	refreshResult := rtToken + " " + refreshToken[72:]
 
 	_, err = u.repo.Refresh(ctx, usr.Username, refreshResult)
 	if err != nil {
@@ -275,6 +321,44 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 		}
 
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create")
+		return nil, err
+	}
+
+	return token, nil
+}
+
+// RefreshToken implements UserService.
+func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[string]string, error) {
+	err := VerifyToken(tokeString)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := ExtractUsernameAndID(ctx, tokeString)
+	if err != nil {
+		return nil, err
+	}
+
+	rfToken, err := u.repo.CheckToken(ctx, value["username"])
+	if err != nil {
+		return nil, errors.ErrUnableToFind.Wrap(err, "unable to find")
+	}
+
+	hashedToken := strings.Fields(rfToken)
+
+	err = Check(hashedToken[0], tokeString[:72])
+	if err != nil {
+		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
+		return nil, err
+	}
+	if hashedToken[1] != tokeString[72:] {
+		err := errors.ErrInvalidInput.Wrap(errors.ErrInvalidInput.New("invalid input"), "invalid input")
+		return nil, err
+	}
+
+	token, err := CreateToken(value["id"], value["username"])
+	if err != nil {
+		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
 		return nil, err
 	}
 

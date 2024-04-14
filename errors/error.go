@@ -58,6 +58,11 @@ var Errorsvalue = []ErrorResponse{
 		Status:    http.StatusConflict,
 		Error:     "USER_ALREADY_LOGGED_IN",
 	},
+	{
+		ErrorType: ErrUnableToFind,
+		Status:    http.StatusBadRequest,
+		Error:     "UNABLE_TO_FIND",
+	},
 }
 
 var (
@@ -79,4 +84,6 @@ var (
 	ErrUnableToRead        = errorx.NewType(unableToRead, "unable to read")
 	userAlreadyLoggedIn    = errorx.NewNamespace("user already logged in")
 	ErrUserAlreadyLoggedIn = errorx.NewType(userAlreadyLoggedIn, "user already logged in")
+	unableToFind           = errorx.NewNamespace("unable to find")
+	ErrUnableToFind        = errorx.NewType(unableToFind, "unable to find")
 )
