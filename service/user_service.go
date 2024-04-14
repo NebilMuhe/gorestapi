@@ -109,6 +109,14 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
+func CheckPassword(hash, providedPassword string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(providedPassword))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	err := user.Validate()
@@ -166,6 +174,12 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 		}
 
 		err = errors.ErrUnableToRead.Wrap(err, "unable to read")
+		return nil, err
+	}
+
+	err = CheckPassword(usr.Password, user.Password)
+	if err != nil {
+		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
 		return nil, err
 	}
 
