@@ -18,9 +18,16 @@ var Errorsvalue = []ErrorResponse{
 		Status:    http.StatusInternalServerError,
 		Error:     "UNABLE_TO_CREATE",
 	},
+	{
+		ErrorType: ErrBadRequest,
+		Status:    http.StatusBadRequest,
+		Error:     "UNABLE_TO_READ",
+	},
 }
 
 var (
 	unableToCreate    = errorx.NewNamespace("unable to create")
 	ErrUnableToCreate = errorx.NewType(unableToCreate, "unable to create")
+	badRequest        = errorx.NewNamespace("bad request")
+	ErrBadRequest     = errorx.NewType(badRequest, "bad request")
 )

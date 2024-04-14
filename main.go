@@ -37,8 +37,14 @@ func main() {
 	}
 	defer db.Close()
 
+	repo := data.NewUserRepository(db, *logger)
+	service := service.NewUserService(repo, *logger)
+	handlers := handler.NewUserHandler(service)
+
 	router := handler.NewServer()
 	router.Router.Use(handler.TimeoutMiddleware(time.Second * 2))
+
+	router.Router.POST("/api/register", handlers.RegisterUserHandler)
 	router.Router.Run(":" + PORT)
 
 }
