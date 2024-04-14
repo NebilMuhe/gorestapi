@@ -119,7 +119,7 @@ func Hash(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func CheckPassword(hash, providedPassword string) error {
+func Check(hash, providedPassword string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(providedPassword))
 	if err != nil {
 		return err
@@ -238,7 +238,7 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 		return nil, err
 	}
 
-	err = CheckPassword(usr.Password, user.Password)
+	err = Check(usr.Password, user.Password)
 	if err != nil {
 		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
 		return nil, err
