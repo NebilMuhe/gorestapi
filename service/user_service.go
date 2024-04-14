@@ -1,12 +1,15 @@
 package service
 
 import (
+	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/joho/godotenv"
+	"gitlab.com/Nebil/errors"
 	"go.uber.org/zap"
 )
 
@@ -69,6 +72,16 @@ func LoadEnv() error {
 		return err
 	}
 	return nil
+}
+
+func GenerateRequestID(ctx *gin.Context) (string, error) {
+	uuid, err := exec.Command("uuidgen").Output()
+	if err != nil {
+		return "", errors.ErrUnableToCreate.Wrap(err, "unable to create")
+	}
+
+	requestID := strings.Split(string(uuid), "\n")[0]
+	return requestID, nil
 }
 
 // RegisterUser implements UserService.
