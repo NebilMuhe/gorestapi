@@ -45,6 +45,7 @@ func main() {
 	router.Router.Use(handler.TimeoutMiddleware(time.Second * 2))
 
 	router.Router.POST("/api/register", handlers.RegisterUserHandler)
+	router.Router.POST("/api/login", handlers.LoginUserHandler)
 	router.Router.Run(":" + PORT)
 
 }
