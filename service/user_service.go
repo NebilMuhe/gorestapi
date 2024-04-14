@@ -3,10 +3,15 @@ package service
 import (
 	"regexp"
 
+	"github.com/gin-gonic/gin"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/joho/godotenv"
 )
+
+type UserRepository interface {
+	Register(*gin.Context, *User) error
+}
 
 type (
 	User struct {
