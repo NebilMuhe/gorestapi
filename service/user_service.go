@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -141,4 +142,32 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 		return nil, err
 	}
 	return us, nil
+}
+
+// LoginUser implements UserService.
+func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]string, error) {
+	err := user.Validate()
+	if err != nil {
+		u.logger.Error("validation failed", zap.Error(err))
+		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
+		return nil, err
+	}
+
+	usr, err := u.repo.Login(ctx, &user)
+	if err != nil {
+		u.logger.Error("unable to login", zap.Error(err))
+		if err == context.DeadlineExceeded {
+			return nil, err
+		}
+
+		if err == sql.ErrNoRows {
+			err := errors.ErrNotFound.Wrap(err, "not found")
+			return nil, err
+		}
+
+		err = errors.ErrUnableToRead.Wrap(err, "unable to read")
+		return nil, err
+	}
+
+	return nil, nil
 }
