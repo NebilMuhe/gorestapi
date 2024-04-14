@@ -15,6 +15,7 @@ type server struct {
 
 type UserHandler interface {
 	RegisterUserHandler(ctx *gin.Context)
+	LoginUserHandler(ctx *gin.Context)
 }
 
 type userHandler struct {
@@ -57,4 +58,9 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, registeredUser)
+}
+
+// LoginUserHandler implements UserHandler.
+func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
+
 }

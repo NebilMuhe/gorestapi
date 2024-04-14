@@ -2,7 +2,6 @@ package data
 
 import (
 	"database/sql"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	db "gitlab.com/Nebil/db/sqlc"
@@ -45,21 +44,20 @@ func (u *userRepository) Register(ctx *gin.Context, user *service.User) (*servic
 	resChan := make(chan *service.User)
 
 	go func() {
-		time.Sleep(time.Second * 7)
 		arg := db.RegisterUserParams{
 			Username: user.Username,
 			Email:    user.Email,
 			Password: user.Password,
 		}
-		us, err := u.queries.RegisterUser(ctx, arg)
+		usr, err := u.queries.RegisterUser(ctx, arg)
 
 		if err != nil {
 			errChan <- err
 			return
 		}
 		resChan <- &service.User{
-			Username: us.Username,
-			Email:    us.Email,
+			Username: usr.Username,
+			Email:    usr.Email,
 		}
 	}()
 
