@@ -111,7 +111,7 @@ func GenerateRequestID(ctx *gin.Context) (string, error) {
 	return requestID, nil
 }
 
-func HashPassword(password string) (string, error) {
+func Hash(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		return "", err
@@ -193,7 +193,7 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 		return nil, err
 	}
 
-	password, err := HashPassword(user.Password)
+	password, err := Hash(user.Password)
 	if err != nil {
 		u.logger.Error("unable to hash password", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
