@@ -9,6 +9,32 @@ import (
 	"context"
 )
 
+const createSession = `-- name: CreateSession :one
+INSERT INTO sessions (
+  username,
+  refresh_token
+) VALUES (
+  $1, $2
+) RETURNING id, username, refresh_token, is_used
+`
+
+type CreateSessionParams struct {
+	Username     string `json:"username"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
+	row := q.db.QueryRowContext(ctx, createSession, arg.Username, arg.RefreshToken)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.RefreshToken,
+		&i.IsUsed,
+	)
+	return i, err
+}
+
 const findBYEmail = `-- name: FindBYEmail :one
 SELECT id, username, email, password
 FROM users
