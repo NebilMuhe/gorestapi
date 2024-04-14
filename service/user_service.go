@@ -3,13 +3,16 @@ package service
 import (
 	"context"
 	"database/sql"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"gitlab.com/Nebil/errors"
 	"go.uber.org/zap"
@@ -117,6 +120,57 @@ func CheckPassword(hash, providedPassword string) error {
 	return nil
 }
 
+func CreateToken(id, username string) (map[string]string, error) {
+	accessToken, err := GenerateAccessToken(id, username)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := GenerateRefreshToken(id, username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{"access_token": accessToken, "refresh_token": refreshToken}, nil
+}
+
+func GenerateAccessToken(id, username string) (string, error) {
+	secretKey := []byte(os.Getenv("SECRET_KEY"))
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"id":       id,
+			"username": username,
+			"exp":      time.Now().Add(time.Minute * 15).Unix(),
+		})
+
+	accessToken, err := token.SignedString(secretKey)
+
+	if err != nil {
+		return "", err
+	}
+
+	return accessToken, nil
+}
+
+func GenerateRefreshToken(id, username string) (string, error) {
+	secretKey := []byte(os.Getenv("SECRET_KEY"))
+
+	refreshToken := jwt.New(jwt.SigningMethodHS256)
+	rtClaims := refreshToken.Claims.(jwt.MapClaims)
+	rtClaims["id"] = id
+	rtClaims["username"] = username
+	rtClaims["sub"] = 1
+	rtClaims["exp"] = time.Now().Add((time.Hour * 24) * 30).Unix()
+	rt, err := refreshToken.SignedString(secretKey)
+	if err != nil {
+		return "", err
+	}
+
+	return rt, nil
+}
+
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	err := user.Validate()
@@ -183,5 +237,12 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 		return nil, err
 	}
 
-	return nil, nil
+	token, err := CreateToken(usr.ID, usr.Username)
+
+	if err != nil {
+		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
+		return nil, err
+	}
+
+	return token, nil
 }
