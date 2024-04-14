@@ -13,6 +13,10 @@ type UserRepository interface {
 	Register(*gin.Context, *User) error
 }
 
+type UserService interface {
+	RegisterUser(ctx *gin.Context, user User) error
+}
+
 type (
 	User struct {
 		Username string `json:"username,omitempty"`
