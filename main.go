@@ -4,7 +4,9 @@ import (
 	"log"
 	"os"
 
+	_ "github.com/lib/pq"
 	"gitlab.com/Nebil/data"
+	"gitlab.com/Nebil/handler"
 	"gitlab.com/Nebil/service"
 	"go.uber.org/zap"
 )
@@ -25,6 +27,7 @@ func main() {
 
 	DB_DRIVER := os.Getenv("DB_DRIVER")
 	DB_URI := os.Getenv("DB_URI")
+	PORT := os.Getenv("PORT")
 
 	db, err := data.ConnectDB(DB_DRIVER, DB_URI)
 	if err != nil {
@@ -32,4 +35,9 @@ func main() {
 		return
 	}
 	defer db.Close()
+
+	router := handler.NewServer()
+
+	router.Router.Run(":" + PORT)
+
 }
