@@ -83,3 +83,8 @@ func (u *userRepository) Exists(ctx *gin.Context, user *service.User) (bool, err
 	}
 	return true, nil
 }
+
+// Login implements service.UserRepository.
+func (u *userRepository) Login(*gin.Context, *service.UserLogin) (map[string]string, error) {
+	return nil, nil
+}
