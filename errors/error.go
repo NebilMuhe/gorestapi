@@ -23,11 +23,18 @@ var Errorsvalue = []ErrorResponse{
 		Status:    http.StatusBadRequest,
 		Error:     "UNABLE_TO_READ",
 	},
+	{
+		ErrorType: ErrRequestTimeout,
+		Status:    http.StatusRequestTimeout,
+		Error:     "REQUEST_TIMEOUT",
+	},
 }
 
 var (
 	unableToCreate    = errorx.NewNamespace("unable to create")
 	ErrUnableToCreate = errorx.NewType(unableToCreate, "unable to create")
-	badRequest        = errorx.NewNamespace("bad request")
-	ErrBadRequest     = errorx.NewType(badRequest, "bad request")
+	badRequest        = errorx.NewNamespace("invalid input")
+	ErrBadRequest     = errorx.NewType(badRequest, "invalid input")
+	requestTimeout    = errorx.NewNamespace("request timeout")
+	ErrRequestTimeout = errorx.NewType(requestTimeout, "request timeout")
 )

@@ -2,10 +2,11 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joomcode/errorx"
+	"gitlab.com/Nebil/errors"
 	"gitlab.com/Nebil/service"
 )
 
@@ -24,7 +25,25 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 		ctx.Next()
 
 		if ctx.Errors != nil {
-			fmt.Println("error")
+			errorHandlerMiddleware(ctx)
+		}
+	}
+}
+
+func errorHandlerMiddleware(ctx *gin.Context) {
+	err := ctx.Errors.Last()
+	if err != nil {
+		e := err.Unwrap()
+		for _, er := range errors.Errorsvalue {
+			if errorx.IsOfType(e, er.ErrorType) {
+				errr := errorx.Cast(e)
+				ctx.JSON(er.Status, gin.H{
+					"Status":       er.Status,
+					"ErrorMessage": errr.Message(),
+					"Error":        e.Error(),
+				})
+			}
+			// fmt.Println("false")
 		}
 	}
 }

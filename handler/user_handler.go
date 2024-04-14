@@ -36,21 +36,24 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	var user service.User
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
-		err = errors.ErrBadRequest.Wrap(err, "bad request")
+		err = errors.ErrBadRequest.Wrap(err, "invalid input")
 		ctx.Error(err)
 		ctx.Abort()
 		return
 	}
 
+	fmt.Println("Hello")
 	registeredUser, err := u.service.RegisterUser(ctx, user)
 
 	if err != nil {
 		if err == context.DeadlineExceeded {
-			fmt.Println("deadline ", err)
+			err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
+			ctx.Error(err)
+			ctx.Abort()
 			return
 		}
 
-		fmt.Println("error", err)
+		ctx.Error(err)
 		return
 	}
 
