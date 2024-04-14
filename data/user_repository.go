@@ -93,6 +93,7 @@ func (u *userRepository) Login(ctx *gin.Context, user *service.UserLogin) (*serv
 		usr, err := u.queries.FindBYUsername(ctx, user.Username)
 		if err != nil {
 			errChan <- err
+			return
 		}
 
 		resChan <- &service.UserLogin{
@@ -110,5 +111,31 @@ func (u *userRepository) Login(ctx *gin.Context, user *service.UserLogin) (*serv
 		return nil, err
 	case usr := <-resChan:
 		return usr, nil
+	}
+}
+
+// Refresh implements service.UserRepository.
+func (u *userRepository) Refresh(ctx *gin.Context, username string, refresh_token string) error {
+	c := ctx.Request.Context()
+	errChan := make(chan error)
+
+	go func() {
+		arg := db.CreateSessionParams{
+			Username:     username,
+			RefreshToken: refresh_token,
+		}
+		_, err := u.queries.CreateSession(ctx, arg)
+		if err != nil {
+			errChan <- err
+			return
+		}
+	}()
+
+	select {
+	case <-c.Done():
+		err := c.Err()
+		return err
+	case err := <-errChan:
+		return err
 	}
 }

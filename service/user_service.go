@@ -22,6 +22,7 @@ import (
 type UserRepository interface {
 	Register(*gin.Context, *User) (*User, error)
 	Login(*gin.Context, *UserLogin) (*UserLogin, error)
+	Refresh(ctx *gin.Context, username, refresh_token string) error
 	Exists(*gin.Context, *User) (bool, error)
 }
 
