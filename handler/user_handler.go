@@ -15,6 +15,7 @@ type server struct {
 
 type UserHandler interface {
 	RegisterUserHandler(ctx *gin.Context)
+	// LoginUserHandler(ctx *gin.Context)
 }
 
 type userHandler struct {

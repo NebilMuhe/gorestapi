@@ -36,6 +36,11 @@ type (
 		Email    string `json:"email,omitempty"`
 		Password string `json:"password,omitempty"`
 	}
+	UserLogin struct {
+		ID       string `json:"id,omitempty"`
+		Username string `json:"username,omitempty"`
+		Password string `json:"password,omitempty"`
+	}
 )
 
 func NewUserService(repo UserRepository, logger zap.Logger) UserService {
