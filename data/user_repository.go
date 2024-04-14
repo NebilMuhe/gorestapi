@@ -83,3 +83,32 @@ func (u *userRepository) Exists(ctx *gin.Context, user *service.User) (bool, err
 	}
 	return true, nil
 }
+
+// Login implements service.UserRepository.
+func (u *userRepository) Login(ctx *gin.Context, user *service.UserLogin) (*service.UserLogin, error) {
+	c := ctx.Request.Context()
+	errChan := make(chan error)
+	resChan := make(chan *service.UserLogin)
+	go func() {
+		usr, err := u.queries.FindBYUsername(ctx, user.Username)
+		if err != nil {
+			errChan <- err
+		}
+
+		resChan <- &service.UserLogin{
+			ID:       usr.ID.String(),
+			Username: usr.Username,
+			Password: usr.Password,
+		}
+	}()
+
+	select {
+	case <-c.Done():
+		err := c.Err()
+		return nil, err
+	case err := <-errChan:
+		return nil, err
+	case usr := <-resChan:
+		return usr, nil
+	}
+}

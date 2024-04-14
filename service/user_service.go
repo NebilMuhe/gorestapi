@@ -18,7 +18,7 @@ import (
 
 type UserRepository interface {
 	Register(*gin.Context, *User) (*User, error)
-
+	Login(*gin.Context, *UserLogin) (*UserLogin, error)
 	Exists(*gin.Context, *User) (bool, error)
 }
 
