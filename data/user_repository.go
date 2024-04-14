@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	db "gitlab.com/Nebil/db/sqlc"
@@ -38,6 +39,21 @@ func ConnectDB(driver, url string) (*sql.DB, error) {
 }
 
 // Register implements service.UserRepository.
-func (u *userRepository) Register(*gin.Context, *service.User) error {
-	return nil
+func (u *userRepository) Register(*gin.Context, *service.User) (*service.User, error) {
+	return &service.User{}, nil
+}
+
+// Exists implements service.UserRepository.
+func (u *userRepository) Exists(ctx *gin.Context, user *service.User) (bool, error) {
+	_, err := u.queries.FindBYEmail(ctx, user.Email)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	_, err = u.queries.FindBYUsername(ctx, user.Username)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	return true, nil
 }

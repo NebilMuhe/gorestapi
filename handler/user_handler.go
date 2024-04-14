@@ -42,7 +42,6 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("Hello")
 	registeredUser, err := u.service.RegisterUser(ctx, user)
 
 	if err != nil {
@@ -54,6 +53,7 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 		}
 
 		ctx.Error(err)
+		ctx.Abort()
 		return
 	}
 

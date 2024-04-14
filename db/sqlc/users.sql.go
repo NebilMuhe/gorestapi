@@ -9,6 +9,44 @@ import (
 	"context"
 )
 
+const findBYEmail = `-- name: FindBYEmail :one
+SELECT id, username, email, password
+FROM users
+WHERE email = $1
+LIMIT 1
+`
+
+func (q *Queries) FindBYEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, findBYEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
+}
+
+const findBYUsername = `-- name: FindBYUsername :one
+SELECT id, username, email, password
+FROM users
+WHERE username = $1
+LIMIT 1
+`
+
+func (q *Queries) FindBYUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, findBYUsername, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
+}
+
 const registerUser = `-- name: RegisterUser :one
 INSERT INTO users (
   username,

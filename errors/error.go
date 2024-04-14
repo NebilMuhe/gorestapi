@@ -28,13 +28,22 @@ var Errorsvalue = []ErrorResponse{
 		Status:    http.StatusRequestTimeout,
 		Error:     "REQUEST_TIMEOUT",
 	},
+	{
+		ErrorType: ErrInvalidInput,
+		Status:    http.StatusBadRequest,
+		Error:     "INVALID_CREDENTIAL",
+	},
 }
 
 var (
-	unableToCreate    = errorx.NewNamespace("unable to create")
-	ErrUnableToCreate = errorx.NewType(unableToCreate, "unable to create")
-	badRequest        = errorx.NewNamespace("invalid input")
-	ErrBadRequest     = errorx.NewType(badRequest, "invalid input")
-	requestTimeout    = errorx.NewNamespace("request timeout")
-	ErrRequestTimeout = errorx.NewType(requestTimeout, "request timeout")
+	unableToCreate       = errorx.NewNamespace("unable to create")
+	ErrUnableToCreate    = errorx.NewType(unableToCreate, "unable to create")
+	badRequest           = errorx.NewNamespace("invalid input")
+	ErrBadRequest        = errorx.NewType(badRequest, "invalid input")
+	requestTimeout       = errorx.NewNamespace("request timeout")
+	ErrRequestTimeout    = errorx.NewType(requestTimeout, "request timeout")
+	invalidInput         = errorx.NewNamespace("invalid username email or password")
+	ErrInvalidInput      = errorx.NewType(invalidInput, "invalid username email or password")
+	userAlreadyExists    = errorx.NewNamespace("user already exists")
+	ErrUserAlreadyExists = errorx.NewType(userAlreadyExists, "user already exists")
 )

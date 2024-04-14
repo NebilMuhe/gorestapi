@@ -9,6 +9,8 @@ import (
 )
 
 type Querier interface {
+	FindBYEmail(ctx context.Context, email string) (User, error)
+	FindBYUsername(ctx context.Context, username string) (User, error)
 	RegisterUser(ctx context.Context, arg RegisterUserParams) (User, error)
 }
 

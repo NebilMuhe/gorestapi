@@ -14,7 +14,8 @@ import (
 )
 
 type UserRepository interface {
-	Register(*gin.Context, *User) error
+	Register(*gin.Context, *User) (*User, error)
+	Exists(*gin.Context, *User) (bool, error)
 }
 
 type UserService interface {
@@ -86,5 +87,21 @@ func GenerateRequestID(ctx *gin.Context) (string, error) {
 
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
-	return &User{}, nil
+	err := user.Validate()
+	if err != nil {
+		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
+		return &User{}, err
+	}
+
+	exist, _ := u.repo.Exists(ctx, &user)
+	if exist {
+		err = errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user exists"), "user already exists")
+		return &User{}, err
+	}
+	us, err := u.repo.Register(ctx, &user)
+	if err != nil {
+		err = errors.ErrUnableToCreate.Wrap(err, "unable to create")
+		return &User{}, err
+	}
+	return us, nil
 }
