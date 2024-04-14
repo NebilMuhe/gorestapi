@@ -22,7 +22,7 @@ import (
 type UserRepository interface {
 	Register(*gin.Context, *User) (*User, error)
 	Login(*gin.Context, *UserLogin) (*UserLogin, error)
-	Refresh(ctx *gin.Context, username, refresh_token string) error
+	Refresh(ctx *gin.Context, username, refresh_token string) (*RefToken, error)
 	Exists(*gin.Context, *User) (bool, error)
 }
 
@@ -250,14 +250,17 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 		return nil, err
 	}
 
-	rtToken, err := Hash(token["refresh_token"])
+	refreshToken := token["refresh_token"]
+	rtToken, err := Hash(refreshToken[:72])
 	if err != nil {
 		u.logger.Error("unable to hash refresh token", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 
-	err = u.repo.Refresh(ctx, usr.Username, rtToken)
+	refreshResult := rtToken + refreshToken[72:]
+
+	_, err = u.repo.Refresh(ctx, usr.Username, refreshResult)
 	if err != nil {
 		u.logger.Error("error occured on refresh repository", zap.Error(err))
 		if err == context.DeadlineExceeded {

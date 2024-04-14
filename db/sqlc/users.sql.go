@@ -73,6 +73,25 @@ func (q *Queries) FindBYUsername(ctx context.Context, username string) (User, er
 	return i, err
 }
 
+const isLoggedIn = `-- name: IsLoggedIn :one
+SELECT id, username, refresh_token, is_used
+FROM sessions
+WHERE username = $1
+LIMIT 1
+`
+
+func (q *Queries) IsLoggedIn(ctx context.Context, username string) (Session, error) {
+	row := q.db.QueryRowContext(ctx, isLoggedIn, username)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.RefreshToken,
+		&i.IsUsed,
+	)
+	return i, err
+}
+
 const loginUser = `-- name: LoginUser :one
 SELECT id, username, email, password
 FROM users

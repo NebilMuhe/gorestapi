@@ -42,7 +42,7 @@ func main() {
 	handlers := handler.NewUserHandler(service)
 
 	router := handler.NewServer()
-	router.Router.Use(handler.TimeoutMiddleware(time.Second * 2))
+	router.Router.Use(handler.TimeoutMiddleware(time.Second * 5))
 
 	router.Router.POST("/api/register", handlers.RegisterUserHandler)
 	router.Router.POST("/api/login", handlers.LoginUserHandler)

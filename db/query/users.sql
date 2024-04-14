@@ -32,3 +32,9 @@ INSERT INTO sessions (
 ) VALUES (
   $1, $2
 ) RETURNING *;
+
+-- name: IsLoggedIn :one
+SELECT *
+FROM sessions
+WHERE username = $1
+LIMIT 1;
