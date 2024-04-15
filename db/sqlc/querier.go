@@ -15,6 +15,7 @@ type Querier interface {
 	IsLoggedIn(ctx context.Context, username string) (Session, error)
 	LoginUser(ctx context.Context, username string) (User, error)
 	RegisterUser(ctx context.Context, arg RegisterUserParams) (User, error)
+	UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error)
 }
 
 var _ Querier = (*Queries)(nil)

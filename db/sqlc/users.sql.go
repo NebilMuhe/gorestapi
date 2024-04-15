@@ -138,3 +138,27 @@ func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (Use
 	)
 	return i, err
 }
+
+const updateSession = `-- name: UpdateSession :one
+UPDATE sessions
+SET refresh_token = $1
+WHERE username = $2
+RETURNING id, username, refresh_token, is_used
+`
+
+type UpdateSessionParams struct {
+	RefreshToken string `json:"refresh_token"`
+	Username     string `json:"username"`
+}
+
+func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error) {
+	row := q.db.QueryRowContext(ctx, updateSession, arg.RefreshToken, arg.Username)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.RefreshToken,
+		&i.IsUsed,
+	)
+	return i, err
+}

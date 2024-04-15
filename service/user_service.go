@@ -27,6 +27,7 @@ type UserRepository interface {
 	Exists(*gin.Context, *User) (bool, error)
 	IsLoggedIn(ctx *gin.Context, username string) (bool, error)
 	CheckToken(ctx *gin.Context, username string) (string, error)
+	UpdateToken(ctx *gin.Context, token, username string) (*RefToken, error)
 }
 
 type UserService interface {
@@ -217,11 +218,16 @@ func ExtractUsernameAndID(ctx *gin.Context, tokenString string) (map[string]stri
 	var username string
 	var id string
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if int(claims["sub"].(float64)) == 1 {
-			id = claims["id"].(string)
-			username = claims["username"].(string)
+		if _, ok := claims["sub"]; ok {
+			if int(claims["sub"].(float64)) == 1 {
+				id = claims["id"].(string)
+				username = claims["username"].(string)
+			}
+		} else {
+			return nil, errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid refresh tokren"), "invalid token")
 		}
 	}
+
 	return map[string]string{"id": id, "username": username}, nil
 }
 
@@ -359,6 +365,23 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 	token, err := CreateToken(value["id"], value["username"])
 	if err != nil {
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
+		return nil, err
+	}
+
+	refreshToken := token["refresh_token"]
+	rtToken, err := Hash(refreshToken[:72])
+	if err != nil {
+		u.logger.Error("unable to hash refresh token", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
+		return nil, err
+	}
+
+	refreshResult := rtToken + " " + refreshToken[72:]
+
+	_, err = u.repo.UpdateToken(ctx, refreshResult, value["username"])
+	if err != nil {
+		u.logger.Error("unable to update refresh token", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 

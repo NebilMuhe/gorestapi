@@ -168,3 +168,22 @@ func (u *userRepository) CheckToken(ctx *gin.Context, username string) (string, 
 
 	return session.RefreshToken, nil
 }
+
+// UpdateToken implements service.UserRepository.
+func (u *userRepository) UpdateToken(ctx *gin.Context, token, username string) (*service.RefToken, error) {
+	arg := db.UpdateSessionParams{
+		Username:     username,
+		RefreshToken: token,
+	}
+	session, err := u.queries.UpdateSession(ctx, arg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &service.RefToken{
+		ID:            session.ID.String(),
+		Username:      session.Username,
+		Refresh_Token: session.RefreshToken,
+		IsUsed:        session.IsUsed.Bool,
+	}, nil
+}

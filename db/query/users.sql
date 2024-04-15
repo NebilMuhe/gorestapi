@@ -39,3 +39,9 @@ FROM sessions
 WHERE username = $1
 LIMIT 1;
 
+-- name: UpdateSession :one
+UPDATE sessions
+SET refresh_token = $1
+WHERE username = $2
+RETURNING *;
+
