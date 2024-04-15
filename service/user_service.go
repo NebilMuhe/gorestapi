@@ -299,12 +299,14 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 
 	err = Check(usr.Password, user.Password)
 	if err != nil {
+		u.logger.Error("invalid password", zap.Error(err))
 		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
 		return nil, err
 	}
 
 	token, err := CreateToken(usr.ID, usr.Username)
 	if err != nil {
+		u.logger.Error("unable to create token", zap.Error(err))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
 		return nil, err
 	}
@@ -337,16 +339,19 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[string]string, error) {
 	err := VerifyToken(tokeString)
 	if err != nil {
+		u.logger.Error("invalid token", zap.Error(err))
 		return nil, err
 	}
 
 	value, err := ExtractUsernameAndID(ctx, tokeString)
 	if err != nil {
+		u.logger.Error("unable to extract username and id", zap.Error(err))
 		return nil, err
 	}
 
 	rfToken, err := u.repo.CheckToken(ctx, value["username"])
 	if err != nil {
+		u.logger.Error("invalid token", zap.Error(err))
 		return nil, errors.ErrUnableToFind.Wrap(err, "unable to find")
 	}
 
@@ -354,6 +359,7 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 
 	err = Check(hashedToken[0], tokeString[:72])
 	if err != nil {
+		u.logger.Error("invalid token", zap.Error(err))
 		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
 		return nil, err
 	}
@@ -364,6 +370,7 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 
 	token, err := CreateToken(value["id"], value["username"])
 	if err != nil {
+		u.logger.Error("unable to create token", zap.Error(err))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
 		return nil, err
 	}
