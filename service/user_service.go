@@ -2,7 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -231,6 +237,47 @@ func ExtractUsernameAndID(ctx *gin.Context, tokenString string) (map[string]stri
 	return map[string]string{"id": id, "username": username}, nil
 }
 
+func Encrypt(key []byte, token string) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := make([]byte, aes.BlockSize+len(token))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], []byte(token))
+
+	return base64.URLEncoding.EncodeToString(ciphertext), nil
+}
+
+func Decrypt(key []byte, token string) (string, error) {
+	ciphertext, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		return "", err
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	if len(ciphertext) < aes.BlockSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(ciphertext, ciphertext)
+
+	return string(ciphertext), nil
+}
+
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 	requestId, _ := ctx.Get("requestID")
@@ -315,16 +362,15 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 	}
 
 	refreshToken := token["refresh_token"]
-	rtToken, err := Hash(refreshToken[:72])
+	key := os.Getenv("ENCRYPTION_KEY")
+	encryptedToken, err := Encrypt([]byte(key), refreshToken)
+
 	if err != nil {
-		u.logger.Error("unable to hash refresh token", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestId.(string)), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
-
-	refreshResult := rtToken + " " + refreshToken[72:]
-
-	_, err = u.repo.Refresh(ctx, usr.Username, refreshResult)
+	_, err = u.repo.Refresh(ctx, usr.Username, encryptedToken)
 	if err != nil {
 		u.logger.Error("error occured on refresh repository", zap.String("requestID", requestId.(string)), zap.Error(err))
 		if err == context.DeadlineExceeded {
@@ -361,17 +407,17 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 		return nil, errors.ErrUnableToFind.Wrap(err, "unable to find")
 	}
 
-	hashedToken := strings.Fields(rfToken)
+	key := os.Getenv("ENCRYPTION_KEY")
+	decryptRefToken, err := Decrypt([]byte(key), rfToken)
 
-	err = Check(hashedToken[0], tokeString[:72])
 	if err != nil {
-		u.logger.Error("invalid token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
-		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
+		u.logger.Error("unable to decrypt refresh token", zap.String("requestID", requestId.(string)), zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
-	if hashedToken[1] != tokeString[72:] {
-		err := errors.ErrInvalidInput.Wrap(errors.ErrInvalidInput.New("invalid input"), "invalid input")
-		return nil, err
+
+	if decryptRefToken != tokeString {
+		return nil, errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid token provided"), "invalid token")
 	}
 
 	token, err := CreateToken(value["id"], value["username"])
@@ -382,16 +428,15 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 	}
 
 	refreshToken := token["refresh_token"]
-	rtToken, err := Hash(refreshToken[:72])
+	encryptedToken, err := Encrypt([]byte(key), refreshToken)
+
 	if err != nil {
-		u.logger.Error("unable to hash refresh token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
+		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 
-	refreshResult := rtToken + " " + refreshToken[72:]
-
-	_, err = u.repo.UpdateToken(ctx, refreshResult, value["username"])
+	_, err = u.repo.UpdateToken(ctx, encryptedToken, value["username"])
 	if err != nil {
 		u.logger.Error("unable to update refresh token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
