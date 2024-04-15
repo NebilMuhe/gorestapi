@@ -55,7 +55,7 @@ var Errorsvalue = []ErrorResponse{
 	},
 	{
 		ErrorType: ErrUserAlreadyLoggedIn,
-		Status:    http.StatusConflict,
+		Status:    http.StatusPermanentRedirect,
 		Error:     "USER_ALREADY_LOGGED_IN",
 	},
 	{
