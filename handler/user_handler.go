@@ -37,6 +37,8 @@ func NewUserHandler(service service.UserService) UserHandler {
 // RegisterUserHandler implements UserHandler.
 func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	var user service.User
+	reqCtx := ctx.Request.Context()
+	requestID, _ := ctx.Get("requestID")
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		err = errors.ErrBadRequest.Wrap(err, "invalid input")
@@ -45,7 +47,7 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	registeredUser, err := u.service.RegisterUser(ctx, user)
+	registeredUser, err := u.service.RegisterUser(reqCtx, requestID.(string), user)
 
 	if err != nil {
 		if err == context.DeadlineExceeded {
@@ -65,6 +67,8 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 // LoginUserHandler implements UserHandler.
 func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 	var user service.UserLogin
+	reqCtx := ctx.Request.Context()
+	requestID, _ := ctx.Get("requestID")
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		err = errors.ErrBadRequest.Wrap(err, "invalid input")
@@ -73,7 +77,7 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	token, err := u.service.LoginUser(ctx, user)
+	token, err := u.service.LoginUser(reqCtx, requestID.(string), user)
 
 	if err != nil {
 		if err == context.DeadlineExceeded {
@@ -91,6 +95,9 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 }
 
 func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
+	reqCtx := ctx.Request.Context()
+	requestID, _ := ctx.Get("requestID")
+
 	authorization := ctx.Request.Header.Get("Authorization")
 	if authorization == "" || !strings.HasPrefix(authorization, "Bearer ") {
 		err := errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid credentials"), "invalid credentials")
@@ -107,7 +114,7 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 		return
 	}
 
-	token, err := u.service.RefreshToken(ctx, tokenString)
+	token, err := u.service.RefreshToken(reqCtx, requestID.(string), tokenString)
 	if err != nil {
 		ctx.Error(err)
 		ctx.Abort()

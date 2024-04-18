@@ -27,19 +27,19 @@ import (
 )
 
 type UserRepository interface {
-	Register(*gin.Context, *User) (*User, error)
-	Login(*gin.Context, *UserLogin) (*UserLogin, error)
-	Refresh(ctx *gin.Context, username, refresh_token string) (*RefToken, error)
-	Exists(*gin.Context, *User) (bool, error)
-	IsLoggedIn(ctx *gin.Context, username string) (bool, error)
-	CheckToken(ctx *gin.Context, username string) (string, error)
-	UpdateToken(ctx *gin.Context, token, username string) (*RefToken, error)
+	Register(context.Context, *User) (*User, error)
+	Login(context.Context, *UserLogin) (*UserLogin, error)
+	Refresh(ctx context.Context, username, refresh_token string) (*RefToken, error)
+	Exists(context.Context, *User) (bool, error)
+	IsLoggedIn(ctx context.Context, username string) (bool, error)
+	CheckToken(ctx context.Context, username string) (string, error)
+	UpdateToken(ctx context.Context, token, username string) (*RefToken, error)
 }
 
 type UserService interface {
-	RegisterUser(ctx *gin.Context, user User) (*User, error)
-	LoginUser(ctx *gin.Context, user UserLogin) (map[string]string, error)
-	RefreshToken(ctx *gin.Context, tokeString string) (map[string]string, error)
+	RegisterUser(ctx context.Context, requestID string, user User) (*User, error)
+	LoginUser(ctx context.Context, requestID string, user UserLogin) (map[string]string, error)
+	RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error)
 }
 
 type userService struct {
@@ -206,7 +206,7 @@ func VerifyToken(tokenString string) error {
 	return nil
 }
 
-func ExtractUsernameAndID(ctx *gin.Context, tokenString string) (map[string]string, error) {
+func ExtractUsernameAndID(ctx context.Context, tokenString string) (map[string]string, error) {
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -279,12 +279,12 @@ func Decrypt(key []byte, token string) (string, error) {
 }
 
 // RegisterUser implements UserService.
-func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
-	requestId, _ := ctx.Get("requestID")
+func (u *userService) RegisterUser(ctx context.Context, requestID string, user User) (*User, error) {
+	// requestId, _ := ctx.Get("requestID")
 
 	err := user.Validate()
 	if err != nil {
-		u.logger.Error("validation failed", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("validation failed", zap.String("requestID", requestID), zap.Error(err))
 		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
 		return nil, err
 	}
@@ -297,7 +297,7 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 
 	password, err := Hash(user.Password)
 	if err != nil {
-		u.logger.Error("unable to hash password", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to hash password", zap.String("requestID", requestID), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
@@ -305,7 +305,7 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 
 	us, err := u.repo.Register(ctx, &user)
 	if err != nil {
-		u.logger.Error("unable to register", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to register", zap.String("requestID", requestID), zap.Error(err))
 		if err == context.DeadlineExceeded {
 			return nil, err
 		}
@@ -316,11 +316,11 @@ func (u *userService) RegisterUser(ctx *gin.Context, user User) (*User, error) {
 }
 
 // LoginUser implements UserService.
-func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]string, error) {
-	requestId, _ := ctx.Get("requestID")
+func (u *userService) LoginUser(ctx context.Context, requestID string, user UserLogin) (map[string]string, error) {
+	// requestId, _ := ctx.Get("requestID")
 	err := user.Validate()
 	if err != nil {
-		u.logger.Error("validation failed", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("validation failed", zap.String("requestID", requestID), zap.Error(err))
 		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
 		return nil, err
 	}
@@ -333,7 +333,7 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 
 	usr, err := u.repo.Login(ctx, &user)
 	if err != nil {
-		u.logger.Error("unable to login", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to login", zap.String("requestID", requestID), zap.Error(err))
 		if err == context.DeadlineExceeded {
 			return nil, err
 		}
@@ -349,14 +349,14 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 
 	err = Check(usr.Password, user.Password)
 	if err != nil {
-		u.logger.Error("invalid password", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("invalid password", zap.String("requestID", requestID), zap.Error(err))
 		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
 		return nil, err
 	}
 
 	token, err := CreateToken(usr.ID, usr.Username)
 	if err != nil {
-		u.logger.Error("unable to create token", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to create token", zap.String("requestID", requestID), zap.Error(err))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
 		return nil, err
 	}
@@ -366,13 +366,13 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 	encryptedToken, err := Encrypt([]byte(key), refreshToken)
 
 	if err != nil {
-		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestID), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 	_, err = u.repo.Refresh(ctx, usr.Username, encryptedToken)
 	if err != nil {
-		u.logger.Error("error occured on refresh repository", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("error occured on refresh repository", zap.String("requestID", requestID), zap.Error(err))
 		if err == context.DeadlineExceeded {
 			return nil, err
 		}
@@ -385,17 +385,17 @@ func (u *userService) LoginUser(ctx *gin.Context, user UserLogin) (map[string]st
 }
 
 // RefreshToken implements UserService.
-func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[string]string, error) {
-	requestId, _ := ctx.Get("requestID")
+func (u *userService) RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error) {
+	// requestId, _ := ctx.Get("requestID")
 	err := VerifyToken(tokeString)
 	if err != nil {
-		u.logger.Error("invalid token", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("invalid token", zap.String("requestID", requestID), zap.Error(err))
 		return nil, err
 	}
 
 	value, err := ExtractUsernameAndID(ctx, tokeString)
 	if err != nil {
-		u.logger.Error("unable to extract username and id", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to extract username and id", zap.String("requestID", requestID), zap.Error(err))
 		return nil, err
 	}
 
@@ -403,7 +403,7 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 
 	rfToken, err := u.repo.CheckToken(ctx, value["username"])
 	if err != nil {
-		u.logger.Error("invalid token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
+		u.logger.Error("invalid token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
 		return nil, errors.ErrUnableToFind.Wrap(err, "unable to find")
 	}
 
@@ -411,7 +411,7 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 	decryptRefToken, err := Decrypt([]byte(key), rfToken)
 
 	if err != nil {
-		u.logger.Error("unable to decrypt refresh token", zap.String("requestID", requestId.(string)), zap.Error(err))
+		u.logger.Error("unable to decrypt refresh token", zap.String("requestID", requestID), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
@@ -422,7 +422,7 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 
 	token, err := CreateToken(value["id"], value["username"])
 	if err != nil {
-		u.logger.Error("unable to create token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
+		u.logger.Error("unable to create token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
 		return nil, err
 	}
@@ -431,14 +431,14 @@ func (u *userService) RefreshToken(ctx *gin.Context, tokeString string) (map[str
 	encryptedToken, err := Encrypt([]byte(key), refreshToken)
 
 	if err != nil {
-		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
+		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 
 	_, err = u.repo.UpdateToken(ctx, encryptedToken, value["username"])
 	if err != nil {
-		u.logger.Error("unable to update refresh token", zap.String("requestID", requestId.(string)), zap.String("userID", userID), zap.Error(err))
+		u.logger.Error("unable to update refresh token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}

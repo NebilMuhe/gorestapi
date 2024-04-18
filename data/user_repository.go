@@ -1,9 +1,10 @@
 package data
 
 import (
+	"context"
 	"database/sql"
+	"time"
 
-	"github.com/gin-gonic/gin"
 	db "gitlab.com/Nebil/db/sqlc"
 	"gitlab.com/Nebil/service"
 	"go.uber.org/zap"
@@ -38,12 +39,12 @@ func ConnectDB(driver, url string) (*sql.DB, error) {
 }
 
 // Register implements service.UserRepository.
-func (u *userRepository) Register(ctx *gin.Context, user *service.User) (*service.User, error) {
-	c := ctx.Request.Context()
+func (u *userRepository) Register(ctx context.Context, user *service.User) (*service.User, error) {
 	errChan := make(chan error)
 	resChan := make(chan *service.User)
 
 	go func() {
+		time.Sleep(7 * time.Second)
 		arg := db.RegisterUserParams{
 			Username: user.Username,
 			Email:    user.Email,
@@ -62,8 +63,8 @@ func (u *userRepository) Register(ctx *gin.Context, user *service.User) (*servic
 	}()
 
 	select {
-	case <-c.Done():
-		err := c.Err()
+	case <-ctx.Done():
+		err := ctx.Err()
 		return nil, err
 	case err := <-errChan:
 		return nil, err
@@ -74,7 +75,7 @@ func (u *userRepository) Register(ctx *gin.Context, user *service.User) (*servic
 }
 
 // Exists implements service.UserRepository.
-func (u *userRepository) Exists(ctx *gin.Context, user *service.User) (bool, error) {
+func (u *userRepository) Exists(ctx context.Context, user *service.User) (bool, error) {
 	usr, _ := u.queries.FindBYUsername(ctx, user.Username)
 	us, _ := u.queries.FindBYEmail(ctx, user.Email)
 
@@ -85,8 +86,7 @@ func (u *userRepository) Exists(ctx *gin.Context, user *service.User) (bool, err
 }
 
 // Login implements service.UserRepository.
-func (u *userRepository) Login(ctx *gin.Context, user *service.UserLogin) (*service.UserLogin, error) {
-	c := ctx.Request.Context()
+func (u *userRepository) Login(ctx context.Context, user *service.UserLogin) (*service.UserLogin, error) {
 	errChan := make(chan error)
 	resChan := make(chan *service.UserLogin)
 	go func() {
@@ -104,8 +104,8 @@ func (u *userRepository) Login(ctx *gin.Context, user *service.UserLogin) (*serv
 	}()
 
 	select {
-	case <-c.Done():
-		err := c.Err()
+	case <-ctx.Done():
+		err := ctx.Err()
 		return nil, err
 	case err := <-errChan:
 		return nil, err
@@ -115,8 +115,7 @@ func (u *userRepository) Login(ctx *gin.Context, user *service.UserLogin) (*serv
 }
 
 // Refresh implements service.UserRepository.
-func (u *userRepository) Refresh(ctx *gin.Context, username string, refresh_token string) (*service.RefToken, error) {
-	c := ctx.Request.Context()
+func (u *userRepository) Refresh(ctx context.Context, username string, refresh_token string) (*service.RefToken, error) {
 	errChan := make(chan error)
 	resChan := make(chan *service.RefToken)
 
@@ -140,8 +139,8 @@ func (u *userRepository) Refresh(ctx *gin.Context, username string, refresh_toke
 	}()
 
 	select {
-	case <-c.Done():
-		err := c.Err()
+	case <-ctx.Done():
+		err := ctx.Err()
 		return nil, err
 	case err := <-errChan:
 		return nil, err
@@ -151,7 +150,7 @@ func (u *userRepository) Refresh(ctx *gin.Context, username string, refresh_toke
 }
 
 // IsLoggedIn implements service.UserRepository.
-func (u *userRepository) IsLoggedIn(ctx *gin.Context, username string) (bool, error) {
+func (u *userRepository) IsLoggedIn(ctx context.Context, username string) (bool, error) {
 	session, _ := u.queries.IsLoggedIn(ctx, username)
 	if session.Username == "" {
 		return false, nil
@@ -160,7 +159,7 @@ func (u *userRepository) IsLoggedIn(ctx *gin.Context, username string) (bool, er
 }
 
 // CheckToken implements service.UserRepository.
-func (u *userRepository) CheckToken(ctx *gin.Context, username string) (string, error) {
+func (u *userRepository) CheckToken(ctx context.Context, username string) (string, error) {
 	session, err := u.queries.IsLoggedIn(ctx, username)
 	if err != nil {
 		return "", err
@@ -170,7 +169,7 @@ func (u *userRepository) CheckToken(ctx *gin.Context, username string) (string, 
 }
 
 // UpdateToken implements service.UserRepository.
-func (u *userRepository) UpdateToken(ctx *gin.Context, token, username string) (*service.RefToken, error) {
+func (u *userRepository) UpdateToken(ctx context.Context, token, username string) (*service.RefToken, error) {
 	arg := db.UpdateSessionParams{
 		Username:     username,
 		RefreshToken: token,

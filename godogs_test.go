@@ -6,48 +6,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"unicode"
 
 	"github.com/cucumber/godog"
 )
 
 type UserRegistration struct {
-	username     string
-	email        string
-	password     string
 	errorMessage string
-}
-
-var registeredUsers = map[string]struct{}{"testuser": {}}
-
-func isValidPassword(s string) bool {
-	var (
-		hasMinLen  = false
-		hasUpper   = false
-		hasLower   = false
-		hasNumber  = false
-		hasSpecial = false
-	)
-	if len(s) >= 8 {
-		hasMinLen = true
-	}
-	for _, char := range s {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsNumber(char):
-			hasNumber = true
-		case unicode.IsPunct(char) || unicode.IsSymbol(char):
-			hasSpecial = true
-		}
-	}
-	return hasMinLen && hasUpper && hasLower && hasNumber && hasSpecial
-}
-
-func isValidUsername(s string) bool {
-	return len(s) >= 5
 }
 
 func (u *UserRegistration) aUserWithTheUsernameIsAlreadyRegistered(username string) error {
@@ -98,6 +62,7 @@ func (u *UserRegistration) iAmRegisteringWithAnInvalidEmailFormat() error {
 	}
 
 	req, err := json.Marshal(user)
+
 	if err != nil {
 		return err
 	}
