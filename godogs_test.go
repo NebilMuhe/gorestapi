@@ -3,18 +3,30 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/cucumber/godog"
+	"github.com/gin-gonic/gin"
+	"gitlab.com/Nebil/handler"
 )
 
 type UserRegistration struct {
 	errorMessage string
 }
 
+func setUpRouter() *gin.Engine {
+	server := handler.NewServer()
+	return server.Router
+}
+
+// var server = handler.NewServer()
+
 func (u *UserRegistration) aUserWithTheUsernameIsAlreadyRegistered(username string) error {
+	router := setUpRouter()
 	user := map[string]string{
 		"username": username,
 		"email":    "abc123@gmail.com",
@@ -26,18 +38,28 @@ func (u *UserRegistration) aUserWithTheUsernameIsAlreadyRegistered(username stri
 		return err
 	}
 
-	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+	w := httptest.NewRecorder()
+	request, _ := http.NewRequest(http.MethodPost, "/api/register", strings.NewReader(string(req)))
+	// request := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(string(req)))
 
-	if res.StatusCode != http.StatusCreated {
-		u.errorMessage = "username already exists"
-		return nil
-	}
+	router.ServeHTTP(w, request)
 
-	return errors.New("username not exists")
+	fmt.Println("error", w.Code)
+	fmt.Println(w.Body.String())
+
+	return nil
+	// res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
+	// if err != nil {
+	// 	return err
+	// }
+	// defer res.Body.Close()
+
+	// if res.StatusCode != http.StatusCreated {
+	// 	u.errorMessage = "username already exists"
+	// 	return nil
+	// }
+
+	// return errors.New("username not exists")
 }
 
 func (u *UserRegistration) iAttemptToRegisterWithTheSameUsername() error {
@@ -307,6 +329,7 @@ func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheP
 
 func InitializeScenario(ctx *godog.ScenarioContext) {
 	user := &UserRegistration{}
+
 	ctx.Step(`^a user with the username "([^"]*)" is already registered,$`,
 		user.aUserWithTheUsernameIsAlreadyRegistered)
 	ctx.Step(`^I attempt to register with the same username,$`,

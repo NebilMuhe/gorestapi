@@ -3,9 +3,9 @@ package data
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	db "gitlab.com/Nebil/db/sqlc"
+	"gitlab.com/Nebil/errors"
 	"gitlab.com/Nebil/service"
 	"go.uber.org/zap"
 )
@@ -40,49 +40,50 @@ func ConnectDB(driver, url string) (*sql.DB, error) {
 
 // Register implements service.UserRepository.
 func (u *userRepository) Register(ctx context.Context, user *service.User) (*service.User, error) {
-	errChan := make(chan error)
-	resChan := make(chan *service.User)
-
-	go func() {
-		time.Sleep(7 * time.Second)
-		arg := db.RegisterUserParams{
-			Username: user.Username,
-			Email:    user.Email,
-			Password: user.Password,
-		}
-		usr, err := u.queries.RegisterUser(ctx, arg)
-
-		if err != nil {
-			errChan <- err
-			return
-		}
-		resChan <- &service.User{
-			Username: usr.Username,
-			Email:    usr.Email,
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		err := ctx.Err()
-		return nil, err
-	case err := <-errChan:
-		return nil, err
-	case res := <-resChan:
-		return res, nil
+	arg := db.RegisterUserParams{
+		Username: user.Username,
+		Email:    user.Email,
+		Password: user.Password,
 	}
 
+	usr, err := u.queries.RegisterUser(ctx, arg)
+
+	if err != nil {
+		u.logger.Error("unable to register", zap.Error(err))
+		err = errors.ErrUnableToCreate.Wrap(err, "unable to register")
+		return nil, err
+	}
+
+	res := &service.User{
+		Username: usr.Username,
+		Email:    usr.Email,
+	}
+
+	return res, nil
 }
 
-// Exists implements service.UserRepository.
-func (u *userRepository) Exists(ctx context.Context, user *service.User) (bool, error) {
+func NewLogger() *zap.Logger {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return nil
+	}
+	defer logger.Sync()
+
+	return logger
+}
+
+// IsExists implements service.UserRepository.
+func (u *userRepository) IsExists(ctx context.Context, user *service.User) (bool, error) {
+	log := NewLogger()
 	usr, _ := u.queries.FindBYUsername(ctx, user.Username)
 	us, _ := u.queries.FindBYEmail(ctx, user.Email)
 
 	if usr.Username == "" && us.Email == "" {
 		return false, nil
 	}
-	return true, nil
+	err := errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user already exists"), "user already exists")
+	log.Error("user already exists", zap.Error(err))
+	return true, err
 }
 
 // Login implements service.UserRepository.

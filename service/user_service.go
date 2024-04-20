@@ -30,7 +30,7 @@ type UserRepository interface {
 	Register(context.Context, *User) (*User, error)
 	Login(context.Context, *UserLogin) (*UserLogin, error)
 	Refresh(ctx context.Context, username, refresh_token string) (*RefToken, error)
-	Exists(context.Context, *User) (bool, error)
+	IsExists(context.Context, *User) (bool, error)
 	IsLoggedIn(ctx context.Context, username string) (bool, error)
 	CheckToken(ctx context.Context, username string) (string, error)
 	UpdateToken(ctx context.Context, token, username string) (*RefToken, error)
@@ -52,6 +52,7 @@ type (
 		Username string `json:"username,omitempty"`
 		Email    string `json:"email,omitempty"`
 		Password string `json:"password,omitempty"`
+		// logger   zap.Logger
 	}
 	UserLogin struct {
 		ID       string `json:"id,omitempty"`
@@ -90,12 +91,33 @@ var passwordRule = []validation.Rule{
 	validation.Match(regexp.MustCompile(`[-\#\$\.\%\&\*]`)),
 }
 
+func NewLogger() (*zap.Logger, error) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return nil, err
+	}
+	defer logger.Sync()
+
+	return logger, nil
+}
+
 func (u User) Validate() error {
-	return validation.ValidateStruct(&u,
+	log, err := NewLogger()
+	if err != nil {
+		return err
+	}
+	err = validation.ValidateStruct(&u,
 		validation.Field(&u.Username, usernameRule...),
 		validation.Field(&u.Email, emailRule...),
 		validation.Field(&u.Password, passwordRule...),
 	)
+
+	if err != nil {
+		log.Error("invalid input", zap.Error(err))
+		err = errors.ErrInvalidInput.Wrap(err, "invalid input")
+		return err
+	}
+	return nil
 }
 
 func (u UserLogin) Validate() error {
@@ -122,15 +144,21 @@ func GenerateRequestID(ctx *gin.Context) (string, error) {
 	return requestID, nil
 }
 
-func Hash(password string) (string, error) {
+func HashPassword(password string) (string, error) {
+	logger, err := NewLogger()
+	if err != nil {
+		return "", err
+	}
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
+		logger.Error("unable to hash password", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 	return string(bytes), nil
 }
 
-func Check(hash, providedPassword string) error {
+func CheckPassword(hash, providedPassword string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(providedPassword))
 	if err != nil {
 		return err
@@ -280,36 +308,24 @@ func Decrypt(key []byte, token string) (string, error) {
 
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx context.Context, requestID string, user User) (*User, error) {
-	// requestId, _ := ctx.Get("requestID")
-
 	err := user.Validate()
 	if err != nil {
-		u.logger.Error("validation failed", zap.String("requestID", requestID), zap.Error(err))
-		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
 		return nil, err
 	}
 
-	exist, _ := u.repo.Exists(ctx, &user)
+	exist, err := u.repo.IsExists(ctx, &user)
 	if exist {
-		err = errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user already exists"), "user already exists")
 		return nil, err
 	}
 
-	password, err := Hash(user.Password)
+	password, err := HashPassword(user.Password)
 	if err != nil {
-		u.logger.Error("unable to hash password", zap.String("requestID", requestID), zap.Error(err))
-		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 	user.Password = password
 
 	us, err := u.repo.Register(ctx, &user)
 	if err != nil {
-		u.logger.Error("unable to register", zap.String("requestID", requestID), zap.Error(err))
-		if err == context.DeadlineExceeded {
-			return nil, err
-		}
-		err = errors.ErrUnableToCreate.Wrap(err, "unable to create")
 		return nil, err
 	}
 	return us, nil
@@ -347,7 +363,7 @@ func (u *userService) LoginUser(ctx context.Context, requestID string, user User
 		return nil, err
 	}
 
-	err = Check(usr.Password, user.Password)
+	err = CheckPassword(usr.Password, user.Password)
 	if err != nil {
 		u.logger.Error("invalid password", zap.String("requestID", requestID), zap.Error(err))
 		err := errors.ErrInvalidInput.Wrap(err, "invalid input")

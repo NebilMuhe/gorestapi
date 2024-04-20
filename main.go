@@ -9,16 +9,14 @@ import (
 	"gitlab.com/Nebil/data"
 	"gitlab.com/Nebil/handler"
 	"gitlab.com/Nebil/service"
-	"go.uber.org/zap"
 )
 
 func main() {
-	logger, err := zap.NewDevelopment()
+	logger, err := service.NewLogger()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	defer logger.Sync()
 
 	err = service.LoadEnv()
 	if err != nil {
@@ -39,7 +37,7 @@ func main() {
 
 	repo := data.NewUserRepository(db, *logger)
 	service := service.NewUserService(repo, *logger)
-	handlers := handler.NewUserHandler(service)
+	handlers := handler.NewUserHandler(service, *logger)
 
 	router := handler.NewServer()
 	router.Router.Use(handler.TimeoutMiddleware(time.Second * 5))

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/Nebil/errors"
 	"gitlab.com/Nebil/service"
+	"go.uber.org/zap"
 )
 
 type server struct {
@@ -22,6 +23,7 @@ type UserHandler interface {
 
 type userHandler struct {
 	service service.UserService
+	logger  zap.Logger
 }
 
 func NewServer() *server {
@@ -30,38 +32,50 @@ func NewServer() *server {
 	}
 }
 
-func NewUserHandler(service service.UserService) UserHandler {
-	return &userHandler{service: service}
+func NewUserHandler(service service.UserService, logger zap.Logger) UserHandler {
+	return &userHandler{
+		service: service,
+		logger:  logger,
+	}
 }
 
 // RegisterUserHandler implements UserHandler.
 func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
-	var user service.User
-	reqCtx := ctx.Request.Context()
-	requestID, _ := ctx.Get("requestID")
+	us := make(chan service.User)
+	errChan := make(chan error)
+	go func() {
+		var user service.User
+		reqCtx := ctx.Request.Context()
+		requestID, _ := ctx.Get("requestID")
 
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		err = errors.ErrBadRequest.Wrap(err, "invalid input")
-		ctx.Error(err)
-		ctx.Abort()
-		return
-	}
-
-	registeredUser, err := u.service.RegisterUser(reqCtx, requestID.(string), user)
-
-	if err != nil {
-		if err == context.DeadlineExceeded {
-			err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
-			ctx.Error(err)
-			ctx.Abort()
+		if err := ctx.ShouldBindJSON(&user); err != nil {
+			u.logger.Error("invalid input", zap.Error(err))
+			err = errors.ErrBadRequest.Wrap(err, "invalid input")
+			errChan <- err
 			return
 		}
+
+		registeredUser, err := u.service.RegisterUser(reqCtx, requestID.(string), user)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		us <- *registeredUser
+	}()
+
+	select {
+	case <-ctx.Request.Context().Done():
+		err := ctx.Err()
+		u.logger.Error("request timeout", zap.Error(err))
+		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()
-		return
+	case err := <-errChan:
+		ctx.Error(err)
+		ctx.Abort()
+	case res := <-us:
+		ctx.JSON(http.StatusCreated, res)
 	}
-
-	ctx.JSON(http.StatusCreated, registeredUser)
 }
 
 // LoginUserHandler implements UserHandler.
