@@ -88,31 +88,48 @@ func (u *userRepository) IsExists(ctx context.Context, user *service.User) (bool
 
 // Login implements service.UserRepository.
 func (u *userRepository) Login(ctx context.Context, user *service.UserLogin) (*service.UserLogin, error) {
-	errChan := make(chan error)
-	resChan := make(chan *service.UserLogin)
-	go func() {
-		usr, err := u.queries.FindBYUsername(ctx, user.Username)
-		if err != nil {
-			errChan <- err
-			return
-		}
+	// errChan := make(chan error)
+	// resChan := make(chan *service.UserLogin)
+	// go func() {
+	// 	usr, err := u.queries.FindBYUsername(ctx, user.Username)
+	// 	if err != nil {
+	// 		errChan <- err
+	// 		return
+	// 	}
 
-		resChan <- &service.UserLogin{
-			ID:       usr.ID.String(),
-			Username: usr.Username,
-			Password: usr.Password,
-		}
-	}()
+	// 	resChan <- &service.UserLogin{
+	// 		ID:       usr.ID.String(),
+	// 		Username: usr.Username,
+	// 		Password: usr.Password,
+	// 	}
+	// }()
 
-	select {
-	case <-ctx.Done():
-		err := ctx.Err()
-		return nil, err
-	case err := <-errChan:
-		return nil, err
-	case usr := <-resChan:
-		return usr, nil
+	// select {
+	// case <-ctx.Done():
+	// 	err := ctx.Err()
+	// 	return nil, err
+	// case err := <-errChan:
+	// 	return nil, err
+	// case usr := <-resChan:
+	// 	return usr, nil
+	// }
+	usr, err := u.queries.FindBYUsername(ctx, user.Username)
+	if err != nil {
+		u.logger.Error("unable to login", zap.Error(err))
+		if err == sql.ErrNoRows {
+			err := errors.ErrNotFound.Wrap(err, "not found")
+			return nil, err
+		}
+		return nil, errors.ErrUnableToRead.Wrap(err, "unable to login")
 	}
+
+	res := &service.UserLogin{
+		ID:       usr.ID.String(),
+		Username: usr.Username,
+		Password: usr.Password,
+	}
+
+	return res, nil
 }
 
 // Refresh implements service.UserRepository.
@@ -156,7 +173,7 @@ func (u *userRepository) IsLoggedIn(ctx context.Context, username string) (bool,
 	if session.Username == "" {
 		return false, nil
 	}
-	return true, nil
+	return true, errors.ErrUserAlreadyLoggedIn.Wrap(errors.ErrUserAlreadyLoggedIn.New("user already logged in"), "user already logged in")
 }
 
 // CheckToken implements service.UserRepository.

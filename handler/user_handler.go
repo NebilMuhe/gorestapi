@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -80,32 +79,41 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 
 // LoginUserHandler implements UserHandler.
 func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
-	var user service.UserLogin
-	reqCtx := ctx.Request.Context()
-	requestID, _ := ctx.Get("requestID")
-
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		err = errors.ErrBadRequest.Wrap(err, "invalid input")
-		ctx.Error(err)
-		ctx.Abort()
-		return
-	}
-
-	token, err := u.service.LoginUser(reqCtx, requestID.(string), user)
-
-	if err != nil {
-		if err == context.DeadlineExceeded {
-			err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
-			ctx.Error(err)
-			ctx.Abort()
+	response := make(chan map[string]string)
+	errChan := make(chan error)
+	go func() {
+		var user service.UserLogin
+		reqCtx := ctx.Request.Context()
+		requestID, _ := ctx.Get("requestID")
+		if err := ctx.ShouldBindJSON(&user); err != nil {
+			u.logger.Error("invalid input", zap.Error(err))
+			err = errors.ErrBadRequest.Wrap(err, "invalid input")
+			errChan <- err
 			return
 		}
+
+		token, err := u.service.LoginUser(reqCtx, requestID.(string), user)
+
+		if err != nil {
+			errChan <- err
+			return
+		}
+		response <- token
+	}()
+
+	select {
+	case <-ctx.Request.Context().Done():
+		err := ctx.Err()
+		u.logger.Error("request timeout", zap.Error(err))
+		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()
-		return
+	case err := <-errChan:
+		ctx.Error(err)
+		ctx.Abort()
+	case res := <-response:
+		ctx.JSON(http.StatusOK, res)
 	}
-
-	ctx.JSON(http.StatusOK, token)
 }
 
 func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {

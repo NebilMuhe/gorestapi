@@ -5,9 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"database/sql"
 	"encoding/base64"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -159,22 +157,35 @@ func HashPassword(password string) (string, error) {
 }
 
 func CheckPassword(hash, providedPassword string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(providedPassword))
+	logger, err := NewLogger()
 	if err != nil {
+		return err
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(providedPassword))
+	if err != nil {
+		logger.Error("invalid password", zap.Error(err))
+		err := errors.ErrInvalidInput.Wrap(err, "invalid password")
 		return err
 	}
 	return nil
 }
 
 func CreateToken(id, username string) (map[string]string, error) {
+	logger, err := NewLogger()
+	if err != nil {
+		return nil, err
+	}
 	accessToken, err := GenerateAccessToken(id, username)
 	if err != nil {
+		logger.Error("unable to create access token", zap.Error(err))
+		err = errors.ErrUnableToCreate.Wrap(err, "unable to create access token")
 		return nil, err
 	}
 
 	refreshToken, err := GenerateRefreshToken(id, username)
-
 	if err != nil {
+		logger.Error("unable to create refresh token", zap.Error(err))
+		err = errors.ErrUnableToCreate.Wrap(err, "unable to create refresh token")
 		return nil, err
 	}
 
@@ -266,14 +277,22 @@ func ExtractUsernameAndID(ctx context.Context, tokenString string) (map[string]s
 }
 
 func Encrypt(key []byte, token string) (string, error) {
+	logger, err := NewLogger()
+	if err != nil {
+		return "", err
+	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
+		logger.Error("unable to encrypt refresh token", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 
 	ciphertext := make([]byte, aes.BlockSize+len(token))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		logger.Error("unable to read refresh token", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 
@@ -284,18 +303,28 @@ func Encrypt(key []byte, token string) (string, error) {
 }
 
 func Decrypt(key []byte, token string) (string, error) {
+	logger, err := NewLogger()
+	if err != nil {
+		return "", err
+	}
 	ciphertext, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
+		logger.Error("unable to decrypt refresh token", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
+		logger.Error("unable to create new cipher block", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 
 	if len(ciphertext) < aes.BlockSize {
-		return "", fmt.Errorf("ciphertext too short")
+		logger.Error("ciphertext too short", zap.Error(err))
+		err = errors.ErrBadRequest.Wrap(err, "bad request")
+		return "", err
 	}
 	iv := ciphertext[:aes.BlockSize]
 	ciphertext = ciphertext[aes.BlockSize:]
@@ -333,47 +362,28 @@ func (u *userService) RegisterUser(ctx context.Context, requestID string, user U
 
 // LoginUser implements UserService.
 func (u *userService) LoginUser(ctx context.Context, requestID string, user UserLogin) (map[string]string, error) {
-	// requestId, _ := ctx.Get("requestID")
 	err := user.Validate()
 	if err != nil {
-		u.logger.Error("validation failed", zap.String("requestID", requestID), zap.Error(err))
-		err = errors.ErrInvalidInput.Wrap(err, "invalid username email or password")
 		return nil, err
 	}
 
-	loggedIn, _ := u.repo.IsLoggedIn(ctx, user.Username)
+	loggedIn, err := u.repo.IsLoggedIn(ctx, user.Username)
 	if loggedIn {
-		err = errors.ErrUserAlreadyLoggedIn.Wrap(errors.ErrUserAlreadyLoggedIn.New("user already logged in"), "user already logged in")
 		return nil, err
 	}
 
 	usr, err := u.repo.Login(ctx, &user)
 	if err != nil {
-		u.logger.Error("unable to login", zap.String("requestID", requestID), zap.Error(err))
-		if err == context.DeadlineExceeded {
-			return nil, err
-		}
-
-		if err == sql.ErrNoRows {
-			err := errors.ErrNotFound.Wrap(err, "not found")
-			return nil, err
-		}
-
-		err = errors.ErrUnableToRead.Wrap(err, "unable to read")
 		return nil, err
 	}
 
 	err = CheckPassword(usr.Password, user.Password)
 	if err != nil {
-		u.logger.Error("invalid password", zap.String("requestID", requestID), zap.Error(err))
-		err := errors.ErrInvalidInput.Wrap(err, "invalid input")
 		return nil, err
 	}
 
 	token, err := CreateToken(usr.ID, usr.Username)
 	if err != nil {
-		u.logger.Error("unable to create token", zap.String("requestID", requestID), zap.Error(err))
-		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
 		return nil, err
 	}
 
@@ -382,8 +392,6 @@ func (u *userService) LoginUser(ctx context.Context, requestID string, user User
 	encryptedToken, err := Encrypt([]byte(key), refreshToken)
 
 	if err != nil {
-		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestID), zap.Error(err))
-		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 	_, err = u.repo.Refresh(ctx, usr.Username, encryptedToken)
@@ -427,8 +435,6 @@ func (u *userService) RefreshToken(ctx context.Context, requestID string, tokeSt
 	decryptRefToken, err := Decrypt([]byte(key), rfToken)
 
 	if err != nil {
-		u.logger.Error("unable to decrypt refresh token", zap.String("requestID", requestID), zap.Error(err))
-		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 
@@ -447,8 +453,6 @@ func (u *userService) RefreshToken(ctx context.Context, requestID string, tokeSt
 	encryptedToken, err := Encrypt([]byte(key), refreshToken)
 
 	if err != nil {
-		u.logger.Error("unable to encrypt refresh token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
-		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 
