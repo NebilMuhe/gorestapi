@@ -134,37 +134,57 @@ func (u *userRepository) Login(ctx context.Context, user *service.UserLogin) (*s
 
 // Refresh implements service.UserRepository.
 func (u *userRepository) Refresh(ctx context.Context, username string, refresh_token string) (*service.RefToken, error) {
-	errChan := make(chan error)
-	resChan := make(chan *service.RefToken)
+	// errChan := make(chan error)
+	// resChan := make(chan *service.RefToken)
 
-	go func() {
-		arg := db.CreateSessionParams{
-			Username:     username,
-			RefreshToken: refresh_token,
-		}
-		session, err := u.queries.CreateSession(ctx, arg)
-		if err != nil {
-			errChan <- err
-			return
-		}
+	// go func() {
+	// 	arg := db.CreateSessionParams{
+	// 		Username:     username,
+	// 		RefreshToken: refresh_token,
+	// 	}
+	// 	session, err := u.queries.CreateSession(ctx, arg)
+	// 	if err != nil {
+	// 		errChan <- err
+	// 		return
+	// 	}
 
-		resChan <- &service.RefToken{
-			ID:            session.ID.String(),
-			Username:      session.Username,
-			Refresh_Token: session.RefreshToken,
-			IsUsed:        session.IsUsed.Bool,
-		}
-	}()
+	// 	resChan <- &service.RefToken{
+	// 		ID:            session.ID.String(),
+	// 		Username:      session.Username,
+	// 		Refresh_Token: session.RefreshToken,
+	// 		IsUsed:        session.IsUsed.Bool,
+	// 	}
+	// }()
 
-	select {
-	case <-ctx.Done():
-		err := ctx.Err()
-		return nil, err
-	case err := <-errChan:
-		return nil, err
-	case res := <-resChan:
-		return res, nil
+	// select {
+	// case <-ctx.Done():
+	// 	err := ctx.Err()
+	// 	return nil, err
+	// case err := <-errChan:
+	// 	return nil, err
+	// case res := <-resChan:
+	// 	return res, nil
+	// }
+
+	arg := db.CreateSessionParams{
+		Username:     username,
+		RefreshToken: refresh_token,
 	}
+	session, err := u.queries.CreateSession(ctx, arg)
+	if err != nil {
+		u.logger.Error("unable to store refresh token", zap.Error(err))
+		err = errors.ErrUnableToCreate.Wrap(err, "unable to store refresh token")
+		return nil, err
+	}
+
+	res := &service.RefToken{
+		ID:            session.ID.String(),
+		Username:      session.Username,
+		Refresh_Token: session.RefreshToken,
+		IsUsed:        session.IsUsed.Bool,
+	}
+
+	return res, nil
 }
 
 // IsLoggedIn implements service.UserRepository.
@@ -180,6 +200,8 @@ func (u *userRepository) IsLoggedIn(ctx context.Context, username string) (bool,
 func (u *userRepository) CheckToken(ctx context.Context, username string) (string, error) {
 	session, err := u.queries.IsLoggedIn(ctx, username)
 	if err != nil {
+		u.logger.Error("invalid token", zap.Error(err))
+		err = errors.ErrUnableToFind.Wrap(err, "unable to find")
 		return "", err
 	}
 
@@ -194,6 +216,8 @@ func (u *userRepository) UpdateToken(ctx context.Context, token, username string
 	}
 	session, err := u.queries.UpdateSession(ctx, arg)
 	if err != nil {
+		u.logger.Error("unable to update refresh token", zap.Error(err))
+		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 

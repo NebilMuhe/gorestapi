@@ -229,12 +229,17 @@ func GenerateRefreshToken(id, username string) (string, error) {
 }
 
 func VerifyToken(tokenString string) error {
+	logger, err := NewLogger()
+	if err != nil {
+		return err
+	}
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
 
 	if err != nil {
+		logger.Error("invalid token", zap.Error(err))
 		return errors.ErrBadRequest.Wrap(err, "invalid token")
 	}
 
@@ -246,10 +251,15 @@ func VerifyToken(tokenString string) error {
 }
 
 func ExtractUsernameAndID(ctx context.Context, tokenString string) (map[string]string, error) {
+	logger, err := NewLogger()
+	if err != nil {
+		return nil, err
+	}
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			logger.Error("unable to extract username and id", zap.Error(err))
 			return nil, errors.ErrBadRequest.Wrap(errorx.IllegalState.New("unexpected signing method: %v", token.Header["alg"]), "invalid header method")
 		}
 
@@ -257,6 +267,7 @@ func ExtractUsernameAndID(ctx context.Context, tokenString string) (map[string]s
 	})
 
 	if err != nil {
+		logger.Error("unable to extract username and id", zap.Error(err))
 		return nil, errors.ErrBadRequest.Wrap(err, "bad request")
 	}
 
@@ -396,12 +407,6 @@ func (u *userService) LoginUser(ctx context.Context, requestID string, user User
 	}
 	_, err = u.repo.Refresh(ctx, usr.Username, encryptedToken)
 	if err != nil {
-		u.logger.Error("error occured on refresh repository", zap.String("requestID", requestID), zap.Error(err))
-		if err == context.DeadlineExceeded {
-			return nil, err
-		}
-
-		err = errors.ErrUnableToCreate.Wrap(err, "unable to create")
 		return nil, err
 	}
 
@@ -410,25 +415,21 @@ func (u *userService) LoginUser(ctx context.Context, requestID string, user User
 
 // RefreshToken implements UserService.
 func (u *userService) RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error) {
-	// requestId, _ := ctx.Get("requestID")
 	err := VerifyToken(tokeString)
 	if err != nil {
-		u.logger.Error("invalid token", zap.String("requestID", requestID), zap.Error(err))
 		return nil, err
 	}
 
 	value, err := ExtractUsernameAndID(ctx, tokeString)
 	if err != nil {
-		u.logger.Error("unable to extract username and id", zap.String("requestID", requestID), zap.Error(err))
 		return nil, err
 	}
 
-	userID := value["id"]
+	// userID := value["id"]
 
 	rfToken, err := u.repo.CheckToken(ctx, value["username"])
 	if err != nil {
-		u.logger.Error("invalid token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
-		return nil, errors.ErrUnableToFind.Wrap(err, "unable to find")
+		return nil, err
 	}
 
 	key := os.Getenv("ENCRYPTION_KEY")
@@ -444,22 +445,17 @@ func (u *userService) RefreshToken(ctx context.Context, requestID string, tokeSt
 
 	token, err := CreateToken(value["id"], value["username"])
 	if err != nil {
-		u.logger.Error("unable to create token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
-		err = errors.ErrUnableToCreate.Wrap(err, "unable to create token")
 		return nil, err
 	}
 
 	refreshToken := token["refresh_token"]
 	encryptedToken, err := Encrypt([]byte(key), refreshToken)
-
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = u.repo.UpdateToken(ctx, encryptedToken, value["username"])
 	if err != nil {
-		u.logger.Error("unable to update refresh token", zap.String("requestID", requestID), zap.String("userID", userID), zap.Error(err))
-		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}
 
