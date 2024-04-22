@@ -9,84 +9,33 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"github.com/joomcode/errorx"
+	"gitlab.com/Nebil/data"
 	"gitlab.com/Nebil/errors"
+	"gitlab.com/Nebil/models"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserRepository interface {
-	Register(context.Context, *User) (*User, error)
-	Login(context.Context, *UserLogin) (*UserLogin, error)
-	Refresh(ctx context.Context, username, refresh_token string) (*RefToken, error)
-	IsExists(context.Context, *User) (bool, error)
-	IsLoggedIn(ctx context.Context, username string) (bool, error)
-	CheckToken(ctx context.Context, username string) (string, error)
-	UpdateToken(ctx context.Context, token, username string) (*RefToken, error)
-}
-
 type UserService interface {
-	RegisterUser(ctx context.Context, requestID string, user User) (*User, error)
-	LoginUser(ctx context.Context, requestID string, user UserLogin) (map[string]string, error)
+	RegisterUser(ctx context.Context, requestID string, user models.User) (*models.User, error)
+	LoginUser(ctx context.Context, requestID string, user models.UserLogin) (map[string]string, error)
 	RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error)
 }
 
 type userService struct {
-	repo   UserRepository
+	repo   data.UserRepository
 	logger zap.Logger
 }
 
-type (
-	User struct {
-		Username string `json:"username,omitempty"`
-		Email    string `json:"email,omitempty"`
-		Password string `json:"password,omitempty"`
-		// logger   zap.Logger
-	}
-	UserLogin struct {
-		ID       string `json:"id,omitempty"`
-		Username string `json:"username,omitempty"`
-		Password string `json:"password,omitempty"`
-	}
-	RefToken struct {
-		ID            string `json:"id,omitempty"`
-		Username      string `json:"username,omitempty"`
-		Refresh_Token string `json:"refresh_token,omitempty"`
-		IsUsed        bool   `json:"is_used,omitempty"`
-	}
-)
-
-func NewUserService(repo UserRepository, logger zap.Logger) UserService {
+func NewUserService(repo data.UserRepository, logger zap.Logger) UserService {
 	return &userService{repo: repo, logger: logger}
-}
-
-var usernameRule = []validation.Rule{
-	validation.Required.Error("username must be unique and alphanumeric, with at least 5 characters"),
-	validation.Length(5, 20),
-	validation.Match(regexp.MustCompile(`^[A-Za-z]\w{5,}$`)),
-}
-
-var emailRule = []validation.Rule{
-	validation.Required.Error("email must be valid and already exists"),
-	is.Email,
-}
-
-var passwordRule = []validation.Rule{
-	validation.Required.Error("password must be at least 8 characters long, with at least one uppercase letter,one lowercase letter, one digit, and one special character."),
-	validation.Length(8, 50),
-	validation.Match(regexp.MustCompile(`[A-Z]`)),
-	validation.Match(regexp.MustCompile(`[a-z]`)),
-	validation.Match(regexp.MustCompile(`[0-9]`)),
-	validation.Match(regexp.MustCompile(`[-\#\$\.\%\&\*]`)),
 }
 
 func NewLogger() (*zap.Logger, error) {
@@ -97,31 +46,6 @@ func NewLogger() (*zap.Logger, error) {
 	defer logger.Sync()
 
 	return logger, nil
-}
-
-func (u User) Validate() error {
-	log, err := NewLogger()
-	if err != nil {
-		return err
-	}
-	err = validation.ValidateStruct(&u,
-		validation.Field(&u.Username, usernameRule...),
-		validation.Field(&u.Email, emailRule...),
-		validation.Field(&u.Password, passwordRule...),
-	)
-
-	if err != nil {
-		log.Error("invalid input", zap.Error(err))
-		err = errors.ErrInvalidInput.Wrap(err, "invalid input")
-		return err
-	}
-	return nil
-}
-
-func (u UserLogin) Validate() error {
-	return validation.ValidateStruct(&u,
-		validation.Field(&u.Username, usernameRule...),
-		validation.Field(&u.Password, passwordRule...))
 }
 
 func LoadEnv() error {
@@ -347,7 +271,7 @@ func Decrypt(key []byte, token string) (string, error) {
 }
 
 // RegisterUser implements UserService.
-func (u *userService) RegisterUser(ctx context.Context, requestID string, user User) (*User, error) {
+func (u *userService) RegisterUser(ctx context.Context, requestID string, user models.User) (*models.User, error) {
 	err := user.Validate()
 	if err != nil {
 		return nil, err
@@ -372,7 +296,7 @@ func (u *userService) RegisterUser(ctx context.Context, requestID string, user U
 }
 
 // LoginUser implements UserService.
-func (u *userService) LoginUser(ctx context.Context, requestID string, user UserLogin) (map[string]string, error) {
+func (u *userService) LoginUser(ctx context.Context, requestID string, user models.UserLogin) (map[string]string, error) {
 	err := user.Validate()
 	if err != nil {
 		return nil, err

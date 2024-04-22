@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,18 +34,33 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 func errorHandlerMiddleware(ctx *gin.Context) {
 	err := ctx.Errors.Last()
 	if err != nil {
+		isFound := false
 		e := err.Unwrap()
 		for _, er := range errors.Errorsvalue {
-
 			if errorx.IsOfType(e, er.ErrorType) {
+				isFound = true
 				errr := errorx.Cast(e)
+				if errr == nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ErrorMessage": "unknown error",
+					})
+					return
+				}
+
 				ctx.JSON(er.Status, gin.H{
 					"Status":       er.Status,
 					"ErrorMessage": errr.Message(),
 					"Error":        e.Error(),
 				})
+				return
 			}
-			// fmt.Println("false")
+		}
+
+		if !isFound {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"ErrorMessage": "unknown error",
+			})
+			return
 		}
 	}
 }

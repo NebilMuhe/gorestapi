@@ -6,7 +6,7 @@ import (
 
 	db "gitlab.com/Nebil/db/sqlc"
 	"gitlab.com/Nebil/errors"
-	"gitlab.com/Nebil/service"
+	"gitlab.com/Nebil/models"
 	"go.uber.org/zap"
 )
 
@@ -15,8 +15,17 @@ type userRepository struct {
 	queries  *db.Queries
 	logger   zap.Logger
 }
+type UserRepository interface {
+	Register(context.Context, *models.User) (*models.User, error)
+	Login(context.Context, *models.UserLogin) (*models.UserLogin, error)
+	Refresh(ctx context.Context, username, refresh_token string) (*models.RefToken, error)
+	IsExists(context.Context, *models.User) (bool, error)
+	IsLoggedIn(ctx context.Context, username string) (bool, error)
+	CheckToken(ctx context.Context, username string) (string, error)
+	UpdateToken(ctx context.Context, token, username string) (*models.RefToken, error)
+}
 
-func NewUserRepository(database *sql.DB, logger zap.Logger) service.UserRepository {
+func NewUserRepository(database *sql.DB, logger zap.Logger) UserRepository {
 	return &userRepository{
 		Database: database,
 		queries:  db.New(database),
@@ -38,8 +47,18 @@ func ConnectDB(driver, url string) (*sql.DB, error) {
 	return db, nil
 }
 
+func NewLogger() *zap.Logger {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return nil
+	}
+	defer logger.Sync()
+
+	return logger
+}
+
 // Register implements service.UserRepository.
-func (u *userRepository) Register(ctx context.Context, user *service.User) (*service.User, error) {
+func (u *userRepository) Register(ctx context.Context, user *models.User) (*models.User, error) {
 	arg := db.RegisterUserParams{
 		Username: user.Username,
 		Email:    user.Email,
@@ -54,7 +73,7 @@ func (u *userRepository) Register(ctx context.Context, user *service.User) (*ser
 		return nil, err
 	}
 
-	res := &service.User{
+	res := &models.User{
 		Username: usr.Username,
 		Email:    usr.Email,
 	}
@@ -62,18 +81,8 @@ func (u *userRepository) Register(ctx context.Context, user *service.User) (*ser
 	return res, nil
 }
 
-func NewLogger() *zap.Logger {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		return nil
-	}
-	defer logger.Sync()
-
-	return logger
-}
-
 // IsExists implements service.UserRepository.
-func (u *userRepository) IsExists(ctx context.Context, user *service.User) (bool, error) {
+func (u *userRepository) IsExists(ctx context.Context, user *models.User) (bool, error) {
 	log := NewLogger()
 	usr, _ := u.queries.FindBYUsername(ctx, user.Username)
 	us, _ := u.queries.FindBYEmail(ctx, user.Email)
@@ -87,32 +96,7 @@ func (u *userRepository) IsExists(ctx context.Context, user *service.User) (bool
 }
 
 // Login implements service.UserRepository.
-func (u *userRepository) Login(ctx context.Context, user *service.UserLogin) (*service.UserLogin, error) {
-	// errChan := make(chan error)
-	// resChan := make(chan *service.UserLogin)
-	// go func() {
-	// 	usr, err := u.queries.FindBYUsername(ctx, user.Username)
-	// 	if err != nil {
-	// 		errChan <- err
-	// 		return
-	// 	}
-
-	// 	resChan <- &service.UserLogin{
-	// 		ID:       usr.ID.String(),
-	// 		Username: usr.Username,
-	// 		Password: usr.Password,
-	// 	}
-	// }()
-
-	// select {
-	// case <-ctx.Done():
-	// 	err := ctx.Err()
-	// 	return nil, err
-	// case err := <-errChan:
-	// 	return nil, err
-	// case usr := <-resChan:
-	// 	return usr, nil
-	// }
+func (u *userRepository) Login(ctx context.Context, user *models.UserLogin) (*models.UserLogin, error) {
 	usr, err := u.queries.FindBYUsername(ctx, user.Username)
 	if err != nil {
 		u.logger.Error("unable to login", zap.Error(err))
@@ -123,7 +107,7 @@ func (u *userRepository) Login(ctx context.Context, user *service.UserLogin) (*s
 		return nil, errors.ErrUnableToRead.Wrap(err, "unable to login")
 	}
 
-	res := &service.UserLogin{
+	res := &models.UserLogin{
 		ID:       usr.ID.String(),
 		Username: usr.Username,
 		Password: usr.Password,
@@ -133,39 +117,7 @@ func (u *userRepository) Login(ctx context.Context, user *service.UserLogin) (*s
 }
 
 // Refresh implements service.UserRepository.
-func (u *userRepository) Refresh(ctx context.Context, username string, refresh_token string) (*service.RefToken, error) {
-	// errChan := make(chan error)
-	// resChan := make(chan *service.RefToken)
-
-	// go func() {
-	// 	arg := db.CreateSessionParams{
-	// 		Username:     username,
-	// 		RefreshToken: refresh_token,
-	// 	}
-	// 	session, err := u.queries.CreateSession(ctx, arg)
-	// 	if err != nil {
-	// 		errChan <- err
-	// 		return
-	// 	}
-
-	// 	resChan <- &service.RefToken{
-	// 		ID:            session.ID.String(),
-	// 		Username:      session.Username,
-	// 		Refresh_Token: session.RefreshToken,
-	// 		IsUsed:        session.IsUsed.Bool,
-	// 	}
-	// }()
-
-	// select {
-	// case <-ctx.Done():
-	// 	err := ctx.Err()
-	// 	return nil, err
-	// case err := <-errChan:
-	// 	return nil, err
-	// case res := <-resChan:
-	// 	return res, nil
-	// }
-
+func (u *userRepository) Refresh(ctx context.Context, username string, refresh_token string) (*models.RefToken, error) {
 	arg := db.CreateSessionParams{
 		Username:     username,
 		RefreshToken: refresh_token,
@@ -177,7 +129,7 @@ func (u *userRepository) Refresh(ctx context.Context, username string, refresh_t
 		return nil, err
 	}
 
-	res := &service.RefToken{
+	res := &models.RefToken{
 		ID:            session.ID.String(),
 		Username:      session.Username,
 		Refresh_Token: session.RefreshToken,
@@ -209,7 +161,7 @@ func (u *userRepository) CheckToken(ctx context.Context, username string) (strin
 }
 
 // UpdateToken implements service.UserRepository.
-func (u *userRepository) UpdateToken(ctx context.Context, token, username string) (*service.RefToken, error) {
+func (u *userRepository) UpdateToken(ctx context.Context, token, username string) (*models.RefToken, error) {
 	arg := db.UpdateSessionParams{
 		Username:     username,
 		RefreshToken: token,
@@ -221,7 +173,7 @@ func (u *userRepository) UpdateToken(ctx context.Context, token, username string
 		return nil, err
 	}
 
-	return &service.RefToken{
+	return &models.RefToken{
 		ID:            session.ID.String(),
 		Username:      session.Username,
 		Refresh_Token: session.RefreshToken,
