@@ -69,7 +69,7 @@ func (u *userRepository) Register(ctx context.Context, user *models.User) (*mode
 	usr, err := u.queries.RegisterUser(ctx, arg)
 
 	if err != nil {
-		u.logger.Error(ctx, "unable to register", zap.Error(err))
+		u.logger.Error(ctx, "unable to register", zap.Error(err), zap.String("username", user.Username), zap.String("email", user.Email))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to register")
 		return nil, err
 	}
@@ -84,7 +84,6 @@ func (u *userRepository) Register(ctx context.Context, user *models.User) (*mode
 
 // IsExists implements service.UserRepository.
 func (u *userRepository) IsExists(ctx context.Context, user *models.User) (bool, error) {
-	log := NewLogger()
 	usr, _ := u.queries.FindBYUsername(ctx, user.Username)
 	us, _ := u.queries.FindBYEmail(ctx, user.Email)
 
@@ -92,7 +91,7 @@ func (u *userRepository) IsExists(ctx context.Context, user *models.User) (bool,
 		return false, nil
 	}
 	err := errors.ErrUserAlreadyExists.Wrap(errors.ErrUserAlreadyExists.New("user already exists"), "user already exists")
-	log.Error("user already exists", zap.Error(err))
+	u.logger.Error(ctx, "user already exists", zap.Error(err), zap.String("username", user.Username), zap.String("email", user.Email))
 	return true, err
 }
 
@@ -100,7 +99,7 @@ func (u *userRepository) IsExists(ctx context.Context, user *models.User) (bool,
 func (u *userRepository) Login(ctx context.Context, user *models.UserLogin) (*models.UserLogin, error) {
 	usr, err := u.queries.FindBYUsername(ctx, user.Username)
 	if err != nil {
-		u.logger.Error(ctx, "unable to login", zap.Error(err))
+		u.logger.Error(ctx, "unable to login", zap.Error(err), zap.String("username", user.Username))
 		if err == sql.ErrNoRows {
 			err := errors.ErrNotFound.Wrap(err, "not found")
 			return nil, err
@@ -125,7 +124,7 @@ func (u *userRepository) Refresh(ctx context.Context, username string, refresh_t
 	}
 	session, err := u.queries.CreateSession(ctx, arg)
 	if err != nil {
-		u.logger.Error(ctx, "unable to store refresh token", zap.Error(err))
+		u.logger.Error(ctx, "unable to store refresh token", zap.Error(err), zap.String("username", username))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to store refresh token")
 		return nil, err
 	}
@@ -146,14 +145,16 @@ func (u *userRepository) IsLoggedIn(ctx context.Context, username string) (bool,
 	if session.Username == "" {
 		return false, nil
 	}
-	return true, errors.ErrUserAlreadyLoggedIn.Wrap(errors.ErrUserAlreadyLoggedIn.New("user already logged in"), "user already logged in")
+	err := errors.ErrUserAlreadyLoggedIn.Wrap(errors.ErrUserAlreadyLoggedIn.New("user already logged in"), "user already logged in")
+	u.logger.Error(ctx, "user already exists", zap.Error(err), zap.String("username", username))
+	return true, err
 }
 
 // CheckToken implements service.UserRepository.
 func (u *userRepository) CheckToken(ctx context.Context, username string) (string, error) {
 	session, err := u.queries.IsLoggedIn(ctx, username)
 	if err != nil {
-		u.logger.Error(ctx, "invalid token", zap.Error(err))
+		u.logger.Error(ctx, "invalid token", zap.Error(err), zap.String("username", username))
 		err = errors.ErrUnableToFind.Wrap(err, "unable to find")
 		return "", err
 	}
@@ -169,7 +170,7 @@ func (u *userRepository) UpdateToken(ctx context.Context, token, username string
 	}
 	session, err := u.queries.UpdateSession(ctx, arg)
 	if err != nil {
-		u.logger.Error(ctx, "unable to update refresh token", zap.Error(err))
+		u.logger.Error(ctx, "unable to update refresh token", zap.Error(err), zap.String("username", username))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return nil, err
 	}

@@ -46,11 +46,10 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	us := make(chan models.User)
 	errChan := make(chan error)
 	reqCtx := ctx.Request.Context()
+	requestID, _ := ctx.Get("requestID")
+	contx := context.WithValue(reqCtx, "requestID", requestID)
 	go func() {
 		var user models.User
-		requestID, _ := ctx.Get("requestID")
-
-		contx := context.WithValue(reqCtx, "requestID", requestID)
 		if err := ctx.ShouldBindJSON(&user); err != nil {
 			u.logger.Error(contx, "unable to bind", zap.Error(err))
 			err = errors.ErrBadRequest.Wrap(err, "unable to bind")
@@ -69,8 +68,7 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	select {
 	case <-ctx.Request.Context().Done():
 		err := ctx.Err()
-		// u.logger.Error("request timeout", zap.Error(err))
-		u.logger.Error(reqCtx, "request timeout", zap.Error(err))
+		u.logger.Error(contx, "request timeout", zap.Error(err))
 		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()
@@ -87,18 +85,18 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 	response := make(chan map[string]string)
 	errChan := make(chan error)
 	reqCtx := ctx.Request.Context()
+	requestID, _ := ctx.Get("requestID")
+	contx := context.WithValue(reqCtx, "requestID", requestID)
 	go func() {
 		var user models.UserLogin
-		requestID, _ := ctx.Get("requestID")
 		if err := ctx.ShouldBindJSON(&user); err != nil {
-			// u.logger.Error("invalid input", zap.Error(err))
-			u.logger.Error(ctx, "invalid input", zap.Error(err))
+			u.logger.Error(contx, "invalid input", zap.Error(err))
 			err = errors.ErrBadRequest.Wrap(err, "invalid input")
 			errChan <- err
 			return
 		}
 
-		token, err := u.service.LoginUser(reqCtx, requestID.(string), user)
+		token, err := u.service.LoginUser(contx, requestID.(string), user)
 
 		if err != nil {
 			errChan <- err
@@ -110,8 +108,7 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 	select {
 	case <-ctx.Request.Context().Done():
 		err := ctx.Err()
-		// u.logger.Error("request timeout", zap.Error(err))
-		u.logger.Error(reqCtx, "request timeout", zap.Error(err))
+		u.logger.Error(contx, "request timeout", zap.Error(err))
 		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()
@@ -127,13 +124,14 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 	response := make(chan map[string]string)
 	errChan := make(chan error)
 	reqCtx := ctx.Request.Context()
+	requestID, _ := ctx.Get("requestID")
+	contx := context.WithValue(reqCtx, "requestID", requestID)
 	go func() {
 		requestID, _ := ctx.Get("requestID")
 		authorization := ctx.Request.Header.Get("Authorization")
 		if authorization == "" || !strings.HasPrefix(authorization, "Bearer ") {
 			err := errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid credentials"), "invalid credentials")
-			// u.logger.Error("unauthorized", zap.Error(err))
-			u.logger.Error(reqCtx, "unauthorized", zap.Error(err))
+			u.logger.Error(contx, "unauthorized", zap.Error(err))
 			errChan <- err
 			return
 		}
@@ -141,13 +139,12 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 		tokenString := authorization[len("Bearer "):]
 		if tokenString == "" {
 			err := errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid token"), "invalid token")
-			// u.logger.Error("unauthorized", zap.Error(err))
-			u.logger.Error(ctx, "unauthorized", zap.Error(err))
+			u.logger.Error(contx, "unauthorized", zap.Error(err))
 			errChan <- err
 			return
 		}
 
-		token, err := u.service.RefreshToken(reqCtx, requestID.(string), tokenString)
+		token, err := u.service.RefreshToken(contx, requestID.(string), tokenString)
 		if err != nil {
 			errChan <- err
 			return
@@ -159,8 +156,7 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 	select {
 	case <-ctx.Request.Context().Done():
 		err := ctx.Err()
-		// u.logger.Error("request timeout", zap.Error(err))
-		u.logger.Error(reqCtx, "request timeout", zap.Error(err))
+		u.logger.Error(contx, "request timeout", zap.Error(err))
 		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()
