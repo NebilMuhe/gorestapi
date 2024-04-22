@@ -57,7 +57,7 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 			return
 		}
 
-		registeredUser, err := u.service.RegisterUser(contx, requestID.(string), user)
+		registeredUser, err := u.service.RegisterUser(contx, user)
 		if err != nil {
 			errChan <- err
 			return

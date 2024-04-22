@@ -26,7 +26,7 @@ import (
 )
 
 type UserService interface {
-	RegisterUser(ctx context.Context, requestID string, user models.User) (*models.User, error)
+	RegisterUser(ctx context.Context, user models.User) (*models.User, error)
 	LoginUser(ctx context.Context, requestID string, user models.UserLogin) (map[string]string, error)
 	RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error)
 }
@@ -284,7 +284,7 @@ func Decrypt(key []byte, token string) (string, error) {
 }
 
 // RegisterUser implements UserService.
-func (u *userService) RegisterUser(ctx context.Context, requestID string, user models.User) (*models.User, error) {
+func (u *userService) RegisterUser(ctx context.Context, user models.User) (*models.User, error) {
 	err := user.Validate()
 	if err != nil {
 		return nil, err
