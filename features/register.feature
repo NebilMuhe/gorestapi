@@ -5,7 +5,7 @@ Feature: register user
     When User enters "<Username>","<Email>", and "<Password>"
     Then The system sholud return "<ErrorMessage>"
     Examples:
-    | Username   | Email              | Password        | ErrorMessage      |
-    |            | aslak@cucumber.io  | 12QWas@#        | username required |
-    | Julien     |                    | 12QWas@#        | email required    |
-    | Matt       | matt@cucumber.io   |                 | password required |
+    | Username   | Email              | Password        | ErrorMessage       |
+    |            | "aslak@gmail.com"  | 12QWas@#        | username required. |
+    | Matheo     | ""                 | 12QWas@#        | email required.    |
+    | davidr     | "david@gmail.com"  |                 | password required. |

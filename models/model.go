@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"regexp"
 
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -29,18 +30,18 @@ type (
 )
 
 var usernameRule = []validation.Rule{
-	validation.Required.Error("username must be unique and alphanumeric, with at least 5 characters"),
+	validation.Required.Error("username required"),
 	validation.Length(5, 20),
 	validation.Match(regexp.MustCompile(`^[A-Za-z]\w{5,}$`)),
 }
 
 var emailRule = []validation.Rule{
-	validation.Required.Error("email must be valid and already exists"),
+	validation.Required.Error("email required"),
 	is.Email,
 }
 
 var passwordRule = []validation.Rule{
-	validation.Required.Error("password must be at least 8 characters long, with at least one uppercase letter,one lowercase letter, one digit, and one special character."),
+	validation.Required.Error("password required"),
 	validation.Length(8, 50),
 	validation.Match(regexp.MustCompile(`[A-Z]`)),
 	validation.Match(regexp.MustCompile(`[a-z]`)),
@@ -70,8 +71,9 @@ func (u User) Validate() error {
 	)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		log.Error("invalid input", zap.Error(err))
-		err = errors.ErrInvalidInput.Wrap(err, "invalid input")
+		err = errors.ErrInvalidInput.Wrap(err, err.Error())
 		return err
 	}
 	return nil

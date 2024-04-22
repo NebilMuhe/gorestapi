@@ -30,7 +30,7 @@ type CustomError struct {
 // var server = handler.NewServer()
 
 func (u *UserRegistration) aUserWithTheUsernameIsAlreadyRegistered(username string) error {
-	router, _ := setupRouter()
+	router, _, _ := setupRouter()
 
 	us := &User{
 		Username: "testuser",

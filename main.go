@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -14,13 +13,13 @@ import (
 	"gitlab.com/Nebil/service"
 )
 
-func setupRouter() (*gin.Engine, *sql.DB) {
+func setupRouter() (*gin.Engine, *sql.DB, error) {
 	logger := service.New()
 
 	err := service.LoadEnv()
 	if err != nil {
 		log.Println(err)
-		return nil, nil
+		return nil, nil, err
 	}
 
 	DB_DRIVER := os.Getenv("DB_DRIVER")
@@ -29,7 +28,7 @@ func setupRouter() (*gin.Engine, *sql.DB) {
 	db, err := data.ConnectDB(DB_DRIVER, DB_URI)
 	if err != nil {
 		log.Println(err)
-		return nil, nil
+		return nil, nil, err
 	}
 
 	repo := data.NewUserRepository(db, logger)
@@ -41,21 +40,18 @@ func setupRouter() (*gin.Engine, *sql.DB) {
 	router.Router.POST("/api/register", handlers.RegisterUserHandler)
 	router.Router.POST("/api/login", handlers.LoginUserHandler)
 	router.Router.POST("/api/refresh", handlers.RefreshTokenHandler)
-	router.Router.GET("/api/user", func(ctx *gin.Context) {
-		fmt.Println("Hello world")
-	})
 
-	return router.Router, db
+	return router.Router, db, nil
 }
 
 func main() {
 	// logger := service.New()
 
-	// err := service.LoadEnv()
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
+	err := service.LoadEnv()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	// DB_DRIVER := os.Getenv("DB_DRIVER")
 	// DB_URI := os.Getenv("DB_URI")
@@ -74,7 +70,10 @@ func main() {
 
 	// router := handler.NewServer()s
 	PORT := os.Getenv("PORT")
-	router, db := setupRouter()
+	router, db, err := setupRouter()
+	if err != nil {
+		return
+	}
 
 	defer db.Close()
 
