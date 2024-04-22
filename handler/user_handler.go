@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 	"gitlab.com/Nebil/errors"
 	"gitlab.com/Nebil/models"
 	"gitlab.com/Nebil/service"
+	"gitlab.com/Nebil/utils"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +25,7 @@ type UserHandler interface {
 
 type userHandler struct {
 	service service.UserService
-	logger  zap.Logger
+	logger  utils.Logger
 }
 
 func NewServer() *server {
@@ -32,7 +34,7 @@ func NewServer() *server {
 	}
 }
 
-func NewUserHandler(service service.UserService, logger zap.Logger) UserHandler {
+func NewUserHandler(service service.UserService, logger utils.Logger) UserHandler {
 	return &userHandler{
 		service: service,
 		logger:  logger,
@@ -43,19 +45,20 @@ func NewUserHandler(service service.UserService, logger zap.Logger) UserHandler 
 func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	us := make(chan models.User)
 	errChan := make(chan error)
+	reqCtx := ctx.Request.Context()
 	go func() {
 		var user models.User
-		reqCtx := ctx.Request.Context()
 		requestID, _ := ctx.Get("requestID")
 
+		contx := context.WithValue(reqCtx, "requestID", requestID)
 		if err := ctx.ShouldBindJSON(&user); err != nil {
-			u.logger.Error("invalid input", zap.Error(err))
-			err = errors.ErrBadRequest.Wrap(err, "invalid input")
+			u.logger.Error(contx, "unable to bind", zap.Error(err))
+			err = errors.ErrBadRequest.Wrap(err, "unable to bind")
 			errChan <- err
 			return
 		}
 
-		registeredUser, err := u.service.RegisterUser(reqCtx, requestID.(string), user)
+		registeredUser, err := u.service.RegisterUser(contx, requestID.(string), user)
 		if err != nil {
 			errChan <- err
 			return
@@ -66,7 +69,8 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 	select {
 	case <-ctx.Request.Context().Done():
 		err := ctx.Err()
-		u.logger.Error("request timeout", zap.Error(err))
+		// u.logger.Error("request timeout", zap.Error(err))
+		u.logger.Error(reqCtx, "request timeout", zap.Error(err))
 		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()
@@ -82,12 +86,13 @@ func (u *userHandler) RegisterUserHandler(ctx *gin.Context) {
 func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 	response := make(chan map[string]string)
 	errChan := make(chan error)
+	reqCtx := ctx.Request.Context()
 	go func() {
 		var user models.UserLogin
-		reqCtx := ctx.Request.Context()
 		requestID, _ := ctx.Get("requestID")
 		if err := ctx.ShouldBindJSON(&user); err != nil {
-			u.logger.Error("invalid input", zap.Error(err))
+			// u.logger.Error("invalid input", zap.Error(err))
+			u.logger.Error(ctx, "invalid input", zap.Error(err))
 			err = errors.ErrBadRequest.Wrap(err, "invalid input")
 			errChan <- err
 			return
@@ -105,7 +110,8 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 	select {
 	case <-ctx.Request.Context().Done():
 		err := ctx.Err()
-		u.logger.Error("request timeout", zap.Error(err))
+		// u.logger.Error("request timeout", zap.Error(err))
+		u.logger.Error(reqCtx, "request timeout", zap.Error(err))
 		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()
@@ -120,13 +126,14 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 	response := make(chan map[string]string)
 	errChan := make(chan error)
+	reqCtx := ctx.Request.Context()
 	go func() {
-		reqCtx := ctx.Request.Context()
 		requestID, _ := ctx.Get("requestID")
 		authorization := ctx.Request.Header.Get("Authorization")
 		if authorization == "" || !strings.HasPrefix(authorization, "Bearer ") {
 			err := errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid credentials"), "invalid credentials")
-			u.logger.Error("unauthorized", zap.Error(err))
+			// u.logger.Error("unauthorized", zap.Error(err))
+			u.logger.Error(reqCtx, "unauthorized", zap.Error(err))
 			errChan <- err
 			return
 		}
@@ -134,7 +141,8 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 		tokenString := authorization[len("Bearer "):]
 		if tokenString == "" {
 			err := errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid token"), "invalid token")
-			u.logger.Error("unauthorized", zap.Error(err))
+			// u.logger.Error("unauthorized", zap.Error(err))
+			u.logger.Error(ctx, "unauthorized", zap.Error(err))
 			errChan <- err
 			return
 		}
@@ -151,7 +159,8 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 	select {
 	case <-ctx.Request.Context().Done():
 		err := ctx.Err()
-		u.logger.Error("request timeout", zap.Error(err))
+		// u.logger.Error("request timeout", zap.Error(err))
+		u.logger.Error(reqCtx, "request timeout", zap.Error(err))
 		err = errors.ErrRequestTimeout.Wrap(err, "request timeout")
 		ctx.Error(err)
 		ctx.Abort()

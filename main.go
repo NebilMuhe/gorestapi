@@ -12,13 +12,9 @@ import (
 )
 
 func main() {
-	logger, err := service.NewLogger()
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	logger := service.New()
 
-	err = service.LoadEnv()
+	err := service.LoadEnv()
 	if err != nil {
 		log.Println(err)
 		return
@@ -35,9 +31,9 @@ func main() {
 	}
 	defer db.Close()
 
-	repo := data.NewUserRepository(db, *logger)
-	service := service.NewUserService(repo, *logger)
-	handlers := handler.NewUserHandler(service, *logger)
+	repo := data.NewUserRepository(db, logger)
+	service := service.NewUserService(repo, logger)
+	handlers := handler.NewUserHandler(service, logger)
 
 	router := handler.NewServer()
 	router.Router.Use(handler.TimeoutMiddleware(time.Second * 5))

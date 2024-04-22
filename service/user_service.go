@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"gitlab.com/Nebil/data"
 	"gitlab.com/Nebil/errors"
 	"gitlab.com/Nebil/models"
+	"gitlab.com/Nebil/utils"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -31,10 +33,10 @@ type UserService interface {
 
 type userService struct {
 	repo   data.UserRepository
-	logger zap.Logger
+	logger utils.Logger
 }
 
-func NewUserService(repo data.UserRepository, logger zap.Logger) UserService {
+func NewUserService(repo data.UserRepository, logger utils.Logger) UserService {
 	return &userService{repo: repo, logger: logger}
 }
 
@@ -46,6 +48,17 @@ func NewLogger() (*zap.Logger, error) {
 	defer logger.Sync()
 
 	return logger, nil
+}
+
+func New() utils.Logger {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	defer logger.Sync()
+
+	return utils.NewLogger(logger)
 }
 
 func LoadEnv() error {
