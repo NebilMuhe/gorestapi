@@ -45,30 +45,12 @@ func setupRouter() (*gin.Engine, *sql.DB, error) {
 }
 
 func main() {
-	// logger := service.New()
-
 	err := service.LoadEnv()
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	// DB_DRIVER := os.Getenv("DB_DRIVER")
-	// DB_URI := os.Getenv("DB_URI")
-	// PORT := os.Getenv("PORT")
-
-	// db, err := data.ConnectDB(DB_DRIVER, DB_URI)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
-	// defer db.Close()
-
-	// repo := data.NewUserRepository(db, logger)
-	// service := service.NewUserService(repo, logger)
-	// handlers := handler.NewUserHandler(service, logger)
-
-	// router := handler.NewServer()s
 	PORT := os.Getenv("PORT")
 	router, db, err := setupRouter()
 	if err != nil {

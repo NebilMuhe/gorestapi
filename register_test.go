@@ -48,8 +48,11 @@ func (u *UserRegistration) userEntersAnd(arg1, arg2, arg3 string) error {
 		return err
 	}
 
+	// fmt.Println(customError.ErrorMessage)
+	// u.errorMessage = customError.ErrorMessage
 	errr := strings.Split(customError.ErrorMessage, ": ")
 	u.errorMessage = errr[1]
+	fmt.Println(errr[1])
 	return nil
 }
 

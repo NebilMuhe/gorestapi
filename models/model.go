@@ -32,7 +32,7 @@ type (
 var usernameRule = []validation.Rule{
 	validation.Required.Error("username required"),
 	validation.Length(5, 20),
-	validation.Match(regexp.MustCompile(`^[A-Za-z]\w{5,}$`)),
+	validation.Match(regexp.MustCompile(`^[A-Za-z]\w{4,}$`)),
 }
 
 var emailRule = []validation.Rule{
