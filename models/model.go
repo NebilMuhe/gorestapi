@@ -50,16 +50,6 @@ var passwordRule = []validation.Rule{
 	validation.Match(regexp.MustCompile(`[-\#\$\.\%\&\*]`)),
 }
 
-// func NewLogger() (*zap.Logger, error) {
-// 	logger, err := zap.NewDevelopment()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer logger.Sync()
-
-// 	return logger, nil
-// }
-
 func (u User) Validate(ctx context.Context, logger utils.Logger) error {
 	err := validation.ValidateStruct(&u,
 		validation.Field(&u.Username, usernameRule...),

@@ -8,14 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joomcode/errorx"
 	"gitlab.com/Nebil/errors"
-	"gitlab.com/Nebil/service"
+	"gitlab.com/Nebil/helpers"
 )
 
 func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		c, cancel := context.WithTimeout(ctx.Request.Context(), timeout)
 		defer cancel()
-		requestID, err := service.GenerateRequestID(ctx)
+		requestID, err := helpers.GenerateRequestID(ctx)
 		if err != nil {
 			ctx.Abort()
 			return

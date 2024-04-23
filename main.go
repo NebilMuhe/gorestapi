@@ -10,13 +10,14 @@ import (
 	_ "github.com/lib/pq"
 	"gitlab.com/Nebil/data"
 	"gitlab.com/Nebil/handler"
+	"gitlab.com/Nebil/helpers"
 	"gitlab.com/Nebil/service"
 )
 
 func setupRouter() (*gin.Engine, *sql.DB, error) {
-	logger := service.New()
+	logger := helpers.NewLogger()
 
-	err := service.LoadEnv()
+	err := helpers.LoadEnv()
 	if err != nil {
 		log.Println(err)
 		return nil, nil, err
