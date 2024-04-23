@@ -32,22 +32,23 @@ type (
 
 var usernameRule = []validation.Rule{
 	validation.Required.Error("username required"),
-	validation.Length(5, 20),
-	validation.Match(regexp.MustCompile(`^[A-Za-z]\w{4,}$`)),
+	validation.Length(5, 20).Error("Username length must be atleast 5 characters"),
+	validation.Match(regexp.MustCompile(`^[A-Za-z]\w{4,}$`)).Error("username must be valid"),
+	is.Alphanumeric,
 }
 
 var emailRule = []validation.Rule{
 	validation.Required.Error("email required"),
-	is.Email,
+	is.Email.Error("email must be valid"),
 }
 
 var passwordRule = []validation.Rule{
 	validation.Required.Error("password required"),
-	validation.Length(8, 50),
-	validation.Match(regexp.MustCompile(`[A-Z]`)),
-	validation.Match(regexp.MustCompile(`[a-z]`)),
-	validation.Match(regexp.MustCompile(`[0-9]`)),
-	validation.Match(regexp.MustCompile(`[-\#\$\.\%\&\*]`)),
+	validation.Length(8, 50).Error("Password length must be atleast 8 characters long"),
+	validation.Match(regexp.MustCompile(`[A-Z]`)).Error("Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters"),
+	validation.Match(regexp.MustCompile(`[a-z]`)).Error("Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters"),
+	validation.Match(regexp.MustCompile(`[0-9]`)).Error("Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters"),
+	validation.Match(regexp.MustCompile(`[-\#\$\.\%\&\*]`)).Error("Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters"),
 }
 
 func (u User) Validate(ctx context.Context, logger utils.Logger) error {

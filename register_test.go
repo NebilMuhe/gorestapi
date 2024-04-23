@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -13,8 +13,6 @@ import (
 )
 
 func (u *UserRegistration) theSystemSholudReturn(arg1 string) error {
-	fmt.Println(u.errorMessage)
-	fmt.Println(arg1)
 	if u.errorMessage == arg1 {
 		return nil
 	}
@@ -48,11 +46,8 @@ func (u *UserRegistration) userEntersAnd(arg1, arg2, arg3 string) error {
 		return err
 	}
 
-	// fmt.Println(customError.ErrorMessage)
-	// u.errorMessage = customError.ErrorMessage
 	errr := strings.Split(customError.ErrorMessage, ": ")
 	u.errorMessage = errr[1]
-	fmt.Println(errr[1])
 	return nil
 }
 
@@ -60,11 +55,53 @@ func (u *UserRegistration) userIsOnRegistrePage() error {
 	return nil
 }
 
+func (u *UserRegistration) iSendRequestToWithPayload(arg1, arg2 string, arg3 *godog.DocString) error {
+	router, _, _ := setupRouter()
+	request := httptest.NewRequest(arg1, arg2, strings.NewReader(string(arg3.Content)))
+	request.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, request)
+	u.status = w.Code
+	u.response = w.Body.String()
+	return nil
+}
+
+func (u *UserRegistration) theResponseCodeShouldBe(arg1 int) error {
+	if u.status == arg1 {
+		return nil
+	}
+	return errors.New("unable to register user")
+}
+
+func (u *UserRegistration) theResponsePayloadShouldMatchJson(arg1 *godog.DocString) error {
+	var userdata User
+	if err := json.Unmarshal([]byte(u.response), &userdata); err != nil {
+		return err
+	}
+
+	var expectedData User
+	if err := json.Unmarshal([]byte(arg1.Content), &expectedData); err != nil {
+		return err
+	}
+
+	equal := reflect.DeepEqual(userdata, expectedData)
+
+	if equal {
+		return nil
+	}
+	return errors.New("invalid response")
+}
+
 func InitializeRegisterScenario(ctx *godog.ScenarioContext) {
 	user := &UserRegistration{}
 	ctx.Step(`^User is on registre page$`, user.userIsOnRegistrePage)
 	ctx.Step(`^User enters "([^"]*)",""([^"]*)"", and "([^"]*)"$`, user.userEntersAnd)
 	ctx.Step(`^The system sholud return "([^"]*)"$`, user.theSystemSholudReturn)
+
+	ctx.Step(`^I send "([^"]*)" request to "([^"]*)" with payload:$`, user.iSendRequestToWithPayload)
+	ctx.Step(`^the response code should be (\d+)$`, user.theResponseCodeShouldBe)
+	ctx.Step(`^the response payload should match json:$`, user.theResponsePayloadShouldMatchJson)
 }
 
 func TestRegister(t *testing.T) {

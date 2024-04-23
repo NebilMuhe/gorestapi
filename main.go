@@ -47,12 +47,14 @@ func setupRouter() (*gin.Engine, *sql.DB, error) {
 
 func main() {
 	router, db, err := setupRouter()
-	PORT := os.Getenv("PORT")
-
 	if err != nil {
 		return
 	}
+
+	PORT := os.Getenv("PORT")
 	defer db.Close()
 
-	router.Run(":" + PORT)
+	if err := router.Run(":" + PORT); err != nil {
+		log.Fatal(err)
+	}
 }

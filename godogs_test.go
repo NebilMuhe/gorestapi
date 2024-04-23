@@ -12,13 +12,15 @@ import (
 )
 
 type UserRegistration struct {
+	response     string
 	errorMessage string
+	status       int
 }
 
 type User struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Username string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type CustomError struct {
@@ -27,13 +29,11 @@ type CustomError struct {
 	Status       int    `json:"status"`
 }
 
-// var server = handler.NewServer()
-
 func (u *UserRegistration) aUserWithTheUsernameIsAlreadyRegistered(username string) error {
 	router, _, _ := setupRouter()
 
 	us := &User{
-		Username: "testuser",
+		Username: username,
 		Email:    "abc123@gmail.com",
 		Password: "12ABcd%^",
 	}
@@ -74,256 +74,256 @@ func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatThe(
 	return nil
 }
 
-func (u *UserRegistration) iAmRegisteringWithAnInvalidEmailFormat() error {
-	user := map[string]string{
-		"username": "testuser",
-		"email":    "abc123gmail.com",
-		"password": "12ABcd%^",
-	}
+// func (u *UserRegistration) iAmRegisteringWithAnInvalidEmailFormat() error {
+// 	user := map[string]string{
+// 		"username": "testuser",
+// 		"email":    "abc123gmail.com",
+// 		"password": "12ABcd%^",
+// 	}
 
-	req, err := json.Marshal(user)
+// 	req, err := json.Marshal(user)
 
-	if err != nil {
-		return err
-	}
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+// 	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusBadRequest {
-		u.errorMessage = "invalid email format"
-		return nil
-	}
+// 	if res.StatusCode == http.StatusBadRequest {
+// 		u.errorMessage = "invalid email format"
+// 		return nil
+// 	}
 
-	return errors.New("valid email")
-}
+// 	return errors.New("valid email")
+// }
 
-func (u *UserRegistration) iSubmitTheRegistrationForm() error {
-	return nil
-}
+// func (u *UserRegistration) iSubmitTheRegistrationForm() error {
+// 	return nil
+// }
 
-func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheEmailFormatIsInvalid() error {
-	if u.errorMessage == "invalid email format" {
-		return nil
-	}
-	return errors.New("email format is valid")
-}
+// func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheEmailFormatIsInvalid() error {
+// 	if u.errorMessage == "invalid email format" {
+// 		return nil
+// 	}
+// 	return errors.New("email format is valid")
+// }
 
-func (u *UserRegistration) iAmRegisteringWithAWeakPassword() error {
-	user := map[string]string{
-		"username": "testuser",
-		"email":    "abc123@gmail.com",
-		"password": "12345678",
-	}
-	req, err := json.Marshal(user)
-	if err != nil {
-		return err
-	}
+// func (u *UserRegistration) iAmRegisteringWithAWeakPassword() error {
+// 	user := map[string]string{
+// 		"username": "testuser",
+// 		"email":    "abc123@gmail.com",
+// 		"password": "12345678",
+// 	}
+// 	req, err := json.Marshal(user)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+// 	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusBadRequest {
-		u.errorMessage = "the password is not strong enough"
-		return nil
-	}
-	return errors.New("strong password")
-}
+// 	if res.StatusCode == http.StatusBadRequest {
+// 		u.errorMessage = "the password is not strong enough"
+// 		return nil
+// 	}
+// 	return errors.New("strong password")
+// }
 
-func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatThePasswordIsNotStrongEnough() error {
-	if u.errorMessage == "the password is not strong enough" {
-		return nil
-	}
-	return errors.New("password is strong enough")
-}
+// func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatThePasswordIsNotStrongEnough() error {
+// 	if u.errorMessage == "the password is not strong enough" {
+// 		return nil
+// 	}
+// 	return errors.New("password is strong enough")
+// }
 
-func (u *UserRegistration) iAmRegisteringWithAUsernameLessThanCharactersLong(arg1 int) error {
-	user := map[string]string{
-		"username": "test",
-		"email":    "abc123@gmail.com",
-		"password": "12345678",
-	}
-	req, err := json.Marshal(user)
-	if err != nil {
-		return err
-	}
+// func (u *UserRegistration) iAmRegisteringWithAUsernameLessThanCharactersLong(arg1 int) error {
+// 	user := map[string]string{
+// 		"username": "test",
+// 		"email":    "abc123@gmail.com",
+// 		"password": "12345678",
+// 	}
+// 	req, err := json.Marshal(user)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+// 	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusBadRequest {
-		u.errorMessage = "the username must be at least characters long"
-		return nil
-	}
-	return errors.New("valid username")
-}
+// 	if res.StatusCode == http.StatusBadRequest {
+// 		u.errorMessage = "the username must be at least characters long"
+// 		return nil
+// 	}
+// 	return errors.New("valid username")
+// }
 
-func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheUsernameMustBeAtLeastCharactersLong(minLength int) error {
-	if u.errorMessage == "the username must be at least characters long" {
-		return nil
-	}
-	return errors.New("username has more than 5 characters long")
-}
+// func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheUsernameMustBeAtLeastCharactersLong(minLength int) error {
+// 	if u.errorMessage == "the username must be at least characters long" {
+// 		return nil
+// 	}
+// 	return errors.New("username has more than 5 characters long")
+// }
 
-func (u *UserRegistration) iAmRegisteringWithAPasswordThatDoesNotMeetTheStrengthRequirements() error {
-	user := map[string]string{
-		"username": "testuser",
-		"email":    "abc123@gmail.com",
-		"password": "12345tghik",
-	}
-	req, err := json.Marshal(user)
-	if err != nil {
-		return err
-	}
+// func (u *UserRegistration) iAmRegisteringWithAPasswordThatDoesNotMeetTheStrengthRequirements() error {
+// 	user := map[string]string{
+// 		"username": "testuser",
+// 		"email":    "abc123@gmail.com",
+// 		"password": "12345tghik",
+// 	}
+// 	req, err := json.Marshal(user)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+// 	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusBadRequest {
-		u.errorMessage = "at least 8 characters long, with at least one uppercase letter, one lowercase letter, one digit, and one special character"
-		return nil
-	}
+// 	if res.StatusCode == http.StatusBadRequest {
+// 		u.errorMessage = "at least 8 characters long, with at least one uppercase letter, one lowercase letter, one digit, and one special character"
+// 		return nil
+// 	}
 
-	return errors.New("valid password")
-}
+// 	return errors.New("valid password")
+// }
 
-func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThePasswordRequirementsEgAtLeastCharactersLongWithAtLeastOneUppercaseLetterOneLowercaseLetterOneDigitAndOneSpecialCharacter(length int) error {
-	if u.errorMessage == "at least 8 characters long, with at least one uppercase letter, one lowercase letter, one digit, and one special character" {
-		return nil
-	}
-	return errors.New("strong password")
-}
+// func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThePasswordRequirementsEgAtLeastCharactersLongWithAtLeastOneUppercaseLetterOneLowercaseLetterOneDigitAndOneSpecialCharacter(length int) error {
+// 	if u.errorMessage == "at least 8 characters long, with at least one uppercase letter, one lowercase letter, one digit, and one special character" {
+// 		return nil
+// 	}
+// 	return errors.New("strong password")
+// }
 
-func (u *UserRegistration) iAmARegisteredUserWithValidCredentials() error {
-	user := map[string]string{
-		"username": "nebil12",
-		"email":    "nebil@gmail.com",
-		"password": "1234ABcd%^",
-	}
-	req, err := json.Marshal(user)
-	if err != nil {
-		return err
-	}
+// func (u *UserRegistration) iAmARegisteredUserWithValidCredentials() error {
+// 	user := map[string]string{
+// 		"username": "nebil12",
+// 		"email":    "nebil@gmail.com",
+// 		"password": "1234ABcd%^",
+// 	}
+// 	req, err := json.Marshal(user)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+// 	res, err := http.Post("http://localhost:8000/api/register", "application/json", strings.NewReader(string(req)))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusCreated {
-		u.errorMessage = "user registered"
-		return nil
-	}
-	return errors.New("unable to register user")
-}
+// 	if res.StatusCode == http.StatusCreated {
+// 		u.errorMessage = "user registered"
+// 		return nil
+// 	}
+// 	return errors.New("unable to register user")
+// }
 
-func (u *UserRegistration) iLogInWithMyUsernameAndPassword() error {
-	if u.errorMessage == "user registered" {
-		user := map[string]string{
-			"username": "nebil12",
-			"password": "1234ABcd%^",
-		}
-		req, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
+// func (u *UserRegistration) iLogInWithMyUsernameAndPassword() error {
+// 	if u.errorMessage == "user registered" {
+// 		user := map[string]string{
+// 			"username": "nebil12",
+// 			"password": "1234ABcd%^",
+// 		}
+// 		req, err := json.Marshal(user)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		res, err := http.Post("http://localhost:8000/api/login", "application/json", strings.NewReader(string(req)))
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
+// 		res, err := http.Post("http://localhost:8000/api/login", "application/json", strings.NewReader(string(req)))
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer res.Body.Close()
 
-		if res.StatusCode == http.StatusOK {
-			u.errorMessage = "access token and refresh token generated"
-			return nil
-		}
-	}
-	return errors.New("unable to login user")
-}
+// 		if res.StatusCode == http.StatusOK {
+// 			u.errorMessage = "access token and refresh token generated"
+// 			return nil
+// 		}
+// 	}
+// 	return errors.New("unable to login user")
+// }
 
-func (u *UserRegistration) theSystemShouldGenerateAJWTTokenForAuthenticationAndIssueARefreshToken() error {
-	if u.errorMessage == "access token and refresh token generated" {
-		return nil
-	}
-	return errors.New("unable to generate refresh token")
-}
+// func (u *UserRegistration) theSystemShouldGenerateAJWTTokenForAuthenticationAndIssueARefreshToken() error {
+// 	if u.errorMessage == "access token and refresh token generated" {
+// 		return nil
+// 	}
+// 	return errors.New("unable to generate refresh token")
+// }
 
-func (u *UserRegistration) iAmAttemptingToLogInWithAnInvalidUsername() error {
-	user := map[string]string{
-		"username": "nebil10",
-		"password": "1234ABcd%^",
-	}
-	req, err := json.Marshal(user)
-	if err != nil {
-		return err
-	}
+// func (u *UserRegistration) iAmAttemptingToLogInWithAnInvalidUsername() error {
+// 	user := map[string]string{
+// 		"username": "nebil10",
+// 		"password": "1234ABcd%^",
+// 	}
+// 	req, err := json.Marshal(user)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res, err := http.Post("http://localhost:8000/api/login", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.StatusCode == http.StatusNotFound {
-		u.errorMessage = "the username is not registered"
-		return nil
-	}
-	return errors.New("username registered")
-}
+// 	res, err := http.Post("http://localhost:8000/api/login", "application/json", strings.NewReader(string(req)))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer res.Body.Close()
+// 	if res.StatusCode == http.StatusNotFound {
+// 		u.errorMessage = "the username is not registered"
+// 		return nil
+// 	}
+// 	return errors.New("username registered")
+// }
 
-func (u *UserRegistration) iSubmitTheLoginForm() error {
-	return nil
-}
+// func (u *UserRegistration) iSubmitTheLoginForm() error {
+// 	return nil
+// }
 
-func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheUsernameIsNotRegistered() error {
-	if u.errorMessage == "the username is not registered" {
-		return nil
-	}
-	return errors.New("user already reigtered")
-}
+// func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheUsernameIsNotRegistered() error {
+// 	if u.errorMessage == "the username is not registered" {
+// 		return nil
+// 	}
+// 	return errors.New("user already reigtered")
+// }
 
-func (u *UserRegistration) iAmAttemptingToLogInWithAnInvalidPassword() error {
-	user := map[string]string{
-		"username": "nebil12",
-		"password": "1234ABcd$%",
-	}
-	req, err := json.Marshal(user)
-	if err != nil {
-		return err
-	}
+// func (u *UserRegistration) iAmAttemptingToLogInWithAnInvalidPassword() error {
+// 	user := map[string]string{
+// 		"username": "nebil12",
+// 		"password": "1234ABcd$%",
+// 	}
+// 	req, err := json.Marshal(user)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	res, err := http.Post("http://localhost:8000/api/login", "application/json", strings.NewReader(string(req)))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+// 	res, err := http.Post("http://localhost:8000/api/login", "application/json", strings.NewReader(string(req)))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusBadRequest {
-		u.errorMessage = "the password is incorrect"
-		return nil
-	}
-	return errors.New("password is correct")
-}
+// 	if res.StatusCode == http.StatusBadRequest {
+// 		u.errorMessage = "the password is incorrect"
+// 		return nil
+// 	}
+// 	return errors.New("password is correct")
+// }
 
-func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatThePasswordIsIncorrect() error {
-	if u.errorMessage == "the password is incorrect" {
-		return nil
-	}
-	return errors.New("password is correct")
-}
+// func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatThePasswordIsIncorrect() error {
+// 	if u.errorMessage == "the password is incorrect" {
+// 		return nil
+// 	}
+// 	return errors.New("password is correct")
+// }
 
 func InitializeScenario(ctx *godog.ScenarioContext) {
 	user := &UserRegistration{}

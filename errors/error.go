@@ -9,59 +9,48 @@ import (
 type ErrorResponse struct {
 	ErrorType *errorx.Type
 	Status    int
-	Error     string
 }
 
 var Errorsvalue = []ErrorResponse{
 	{
 		ErrorType: ErrUnableToCreate,
 		Status:    http.StatusInternalServerError,
-		Error:     "UNABLE_TO_CREATE",
 	},
 	{
 		ErrorType: ErrBadRequest,
 		Status:    http.StatusBadRequest,
-		Error:     "UNABLE_TO_READ",
 	},
 	{
 		ErrorType: ErrRequestTimeout,
 		Status:    http.StatusRequestTimeout,
-		Error:     "REQUEST_TIMEOUT",
 	},
 	{
 		ErrorType: ErrInvalidInput,
 		Status:    http.StatusBadRequest,
-		Error:     "INVALID_CREDENTIAL",
 	},
 	{
 		ErrorType: ErrInternalServer,
 		Status:    http.StatusInternalServerError,
-		Error:     "UNABLE_TO_CREATE",
 	},
 	{
 		ErrorType: ErrUserAlreadyExists,
 		Status:    http.StatusConflict,
-		Error:     "UNABLE_TO_CREATE",
 	},
 	{
 		ErrorType: ErrNotFound,
 		Status:    http.StatusNotFound,
-		Error:     "USER_NOT_FOUND",
 	},
 	{
 		ErrorType: ErrUnableToRead,
 		Status:    http.StatusInternalServerError,
-		Error:     "UNABLE_TO_READ",
 	},
 	{
 		ErrorType: ErrUserAlreadyLoggedIn,
 		Status:    http.StatusPermanentRedirect,
-		Error:     "USER_ALREADY_LOGGED_IN",
 	},
 	{
 		ErrorType: ErrUnableToFind,
 		Status:    http.StatusBadRequest,
-		Error:     "UNABLE_TO_FIND",
 	},
 }
 
