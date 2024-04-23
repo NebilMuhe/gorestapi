@@ -15,4 +15,4 @@ Feature: register user
     | david      | "dave@gmail.com"      | 12345678        | must be in a valid format.                 |
     | david      | "dave@gmail.com"      | 1234ABCD        | must be in a valid format.                 |
     | david      | "dave@gmail.com"      | 12ABCDab        | must be in a valid format.                 |
-    | david      | "dave@gmail.com"      | 12ABCD%$        | must be in a valid format.                 |
+    | david1     | "dave@gmail.com"      | 12ABCD%$        | must be in a valid format.                 |

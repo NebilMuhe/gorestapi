@@ -79,49 +79,37 @@ func GenerateRequestID(ctx *gin.Context) (string, error) {
 	return requestID, nil
 }
 
-func HashPassword(password string) (string, error) {
-	logger, err := NewLogger()
-	if err != nil {
-		return "", err
-	}
+func HashPassword(ctx context.Context, password string, logger utils.Logger) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
-		logger.Error("unable to hash password", zap.Error(err))
+		logger.Error(ctx, "unable to hash password", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 	return string(bytes), nil
 }
 
-func CheckPassword(hash, providedPassword string) error {
-	logger, err := NewLogger()
+func CheckPassword(ctx context.Context, hash, providedPassword string, logger utils.Logger) error {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(providedPassword))
 	if err != nil {
-		return err
-	}
-	err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(providedPassword))
-	if err != nil {
-		logger.Error("invalid password", zap.Error(err))
+		logger.Error(ctx, "invalid password", zap.Error(err))
 		err := errors.ErrInvalidInput.Wrap(err, "invalid password")
 		return err
 	}
 	return nil
 }
 
-func CreateToken(id, username string) (map[string]string, error) {
-	logger, err := NewLogger()
-	if err != nil {
-		return nil, err
-	}
+func CreateToken(ctx context.Context, id, username string, logger utils.Logger) (map[string]string, error) {
 	accessToken, err := GenerateAccessToken(id, username)
 	if err != nil {
-		logger.Error("unable to create access token", zap.Error(err))
+		logger.Error(ctx, "unable to create access token", zap.Error(err))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create access token")
 		return nil, err
 	}
 
 	refreshToken, err := GenerateRefreshToken(id, username)
 	if err != nil {
-		logger.Error("unable to create refresh token", zap.Error(err))
+		logger.Error(ctx, "unable to create refresh token", zap.Error(err))
 		err = errors.ErrUnableToCreate.Wrap(err, "unable to create refresh token")
 		return nil, err
 	}
@@ -165,38 +153,32 @@ func GenerateRefreshToken(id, username string) (string, error) {
 	return rt, nil
 }
 
-func VerifyToken(tokenString string) error {
-	logger, err := NewLogger()
-	if err != nil {
-		return err
-	}
+func VerifyToken(ctx context.Context, tokenString string, logger utils.Logger) error {
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
 
 	if err != nil {
-		logger.Error("invalid token", zap.Error(err))
+		logger.Error(ctx, "invalid token", zap.Error(err))
 		return errors.ErrBadRequest.Wrap(err, "invalid token")
 	}
 
 	if !token.Valid {
-		return errors.ErrBadRequest.Wrap(err, "invalid token")
+		err = errors.ErrBadRequest.Wrap(err, "invalid token")
+		logger.Error(ctx, "invalid token", zap.Error(err))
+		return err
 	}
 
 	return nil
 }
 
-func ExtractUsernameAndID(ctx context.Context, tokenString string) (map[string]string, error) {
-	logger, err := NewLogger()
-	if err != nil {
-		return nil, err
-	}
+func ExtractUsernameAndID(ctx context.Context, tokenString string, logger utils.Logger) (map[string]string, error) {
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
-
+	var err error
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			logger.Error("unable to extract username and id", zap.Error(err))
+			logger.Error(ctx, "unable to extract username and id", zap.Error(err))
 			return nil, errors.ErrBadRequest.Wrap(errorx.IllegalState.New("unexpected signing method: %v", token.Header["alg"]), "invalid header method")
 		}
 
@@ -204,7 +186,7 @@ func ExtractUsernameAndID(ctx context.Context, tokenString string) (map[string]s
 	})
 
 	if err != nil {
-		logger.Error("unable to extract username and id", zap.Error(err))
+		logger.Error(ctx, "unable to extract username and id", zap.Error(err))
 		return nil, errors.ErrBadRequest.Wrap(err, "bad request")
 	}
 
@@ -217,21 +199,19 @@ func ExtractUsernameAndID(ctx context.Context, tokenString string) (map[string]s
 				username = claims["username"].(string)
 			}
 		} else {
-			return nil, errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid refresh tokren"), "invalid token")
+			err = errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid refresh tokren"), "invalid token")
+			logger.Error(ctx, "invalid refresh token", zap.Error(err))
+			return nil, err
 		}
 	}
 
 	return map[string]string{"id": id, "username": username}, nil
 }
 
-func Encrypt(key []byte, token string) (string, error) {
-	logger, err := NewLogger()
-	if err != nil {
-		return "", err
-	}
+func Encrypt(ctx context.Context, key []byte, token string, logger utils.Logger) (string, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		logger.Error("unable to encrypt refresh token", zap.Error(err))
+		logger.Error(ctx, "unable to encrypt refresh token", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
@@ -239,7 +219,7 @@ func Encrypt(key []byte, token string) (string, error) {
 	ciphertext := make([]byte, aes.BlockSize+len(token))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		logger.Error("unable to read refresh token", zap.Error(err))
+		logger.Error(ctx, "unable to read refresh token", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
@@ -250,27 +230,23 @@ func Encrypt(key []byte, token string) (string, error) {
 	return base64.URLEncoding.EncodeToString(ciphertext), nil
 }
 
-func Decrypt(key []byte, token string) (string, error) {
-	logger, err := NewLogger()
-	if err != nil {
-		return "", err
-	}
+func Decrypt(ctx context.Context, key []byte, token string, logger utils.Logger) (string, error) {
 	ciphertext, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
-		logger.Error("unable to decrypt refresh token", zap.Error(err))
+		logger.Error(ctx, "unable to decrypt refresh token", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		logger.Error("unable to create new cipher block", zap.Error(err))
+		logger.Error(ctx, "unable to create new cipher block", zap.Error(err))
 		err = errors.ErrInternalServer.Wrap(err, "internal server error")
 		return "", err
 	}
 
 	if len(ciphertext) < aes.BlockSize {
-		logger.Error("ciphertext too short", zap.Error(err))
+		logger.Error(ctx, "ciphertext too short", zap.Error(err))
 		err = errors.ErrBadRequest.Wrap(err, "bad request")
 		return "", err
 	}
@@ -285,7 +261,7 @@ func Decrypt(key []byte, token string) (string, error) {
 
 // RegisterUser implements UserService.
 func (u *userService) RegisterUser(ctx context.Context, user models.User) (*models.User, error) {
-	err := user.Validate()
+	err := user.Validate(ctx, u.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +271,7 @@ func (u *userService) RegisterUser(ctx context.Context, user models.User) (*mode
 		return nil, err
 	}
 
-	password, err := HashPassword(user.Password)
+	password, err := HashPassword(ctx, user.Password, u.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +286,7 @@ func (u *userService) RegisterUser(ctx context.Context, user models.User) (*mode
 
 // LoginUser implements UserService.
 func (u *userService) LoginUser(ctx context.Context, requestID string, user models.UserLogin) (map[string]string, error) {
-	err := user.Validate()
+	err := user.Validate(ctx, u.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -325,20 +301,19 @@ func (u *userService) LoginUser(ctx context.Context, requestID string, user mode
 		return nil, err
 	}
 
-	err = CheckPassword(usr.Password, user.Password)
+	err = CheckPassword(ctx, usr.Password, user.Password, u.logger)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := CreateToken(usr.ID, usr.Username)
+	token, err := CreateToken(ctx, usr.ID, usr.Username, u.logger)
 	if err != nil {
 		return nil, err
 	}
 
 	refreshToken := token["refresh_token"]
 	key := os.Getenv("ENCRYPTION_KEY")
-	encryptedToken, err := Encrypt([]byte(key), refreshToken)
-
+	encryptedToken, err := Encrypt(ctx, []byte(key), refreshToken, u.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -352,41 +327,43 @@ func (u *userService) LoginUser(ctx context.Context, requestID string, user mode
 
 // RefreshToken implements UserService.
 func (u *userService) RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error) {
-	err := VerifyToken(tokeString)
+	err := VerifyToken(ctx, tokeString, u.logger)
 	if err != nil {
 		return nil, err
 	}
 
-	value, err := ExtractUsernameAndID(ctx, tokeString)
+	value, err := ExtractUsernameAndID(ctx, tokeString, u.logger)
 	if err != nil {
 		return nil, err
 	}
 
 	// userID := value["id"]
-
-	rfToken, err := u.repo.CheckToken(ctx, value["username"])
+	contx := context.WithValue(ctx, "userID", value["id"])
+	rfToken, err := u.repo.CheckToken(contx, value["username"])
 	if err != nil {
 		return nil, err
 	}
 
 	key := os.Getenv("ENCRYPTION_KEY")
-	decryptRefToken, err := Decrypt([]byte(key), rfToken)
+	decryptRefToken, err := Decrypt(ctx, []byte(key), rfToken, u.logger)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if decryptRefToken != tokeString {
-		return nil, errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid token provided"), "invalid token")
+		err = errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid token provided"), "invalid token")
+		u.logger.Error(ctx, "invalid token", zap.Error(err))
+		return nil, err
 	}
 
-	token, err := CreateToken(value["id"], value["username"])
+	token, err := CreateToken(ctx, value["id"], value["username"], u.logger)
 	if err != nil {
 		return nil, err
 	}
 
 	refreshToken := token["refresh_token"]
-	encryptedToken, err := Encrypt([]byte(key), refreshToken)
+	encryptedToken, err := Encrypt(ctx, []byte(key), refreshToken, u.logger)
 	if err != nil {
 		return nil, err
 	}

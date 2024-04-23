@@ -1,12 +1,13 @@
 package models
 
 import (
-	"fmt"
+	"context"
 	"regexp"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"gitlab.com/Nebil/errors"
+	"gitlab.com/Nebil/utils"
 	"go.uber.org/zap"
 )
 
@@ -49,48 +50,38 @@ var passwordRule = []validation.Rule{
 	validation.Match(regexp.MustCompile(`[-\#\$\.\%\&\*]`)),
 }
 
-func NewLogger() (*zap.Logger, error) {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		return nil, err
-	}
-	defer logger.Sync()
+// func NewLogger() (*zap.Logger, error) {
+// 	logger, err := zap.NewDevelopment()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer logger.Sync()
 
-	return logger, nil
-}
+// 	return logger, nil
+// }
 
-func (u User) Validate() error {
-	log, err := NewLogger()
-	if err != nil {
-		return err
-	}
-	err = validation.ValidateStruct(&u,
+func (u User) Validate(ctx context.Context, logger utils.Logger) error {
+	err := validation.ValidateStruct(&u,
 		validation.Field(&u.Username, usernameRule...),
 		validation.Field(&u.Email, emailRule...),
 		validation.Field(&u.Password, passwordRule...),
 	)
 
 	if err != nil {
-		fmt.Println(err.Error())
-		log.Error("invalid input", zap.Error(err))
+		logger.Error(ctx, "invalid input", zap.Error(err), zap.Any("user input", u))
 		err = errors.ErrInvalidInput.Wrap(err, err.Error())
 		return err
 	}
 	return nil
 }
 
-func (u UserLogin) Validate() error {
-	log, err := NewLogger()
-	if err != nil {
-		return err
-	}
-
-	err = validation.ValidateStruct(&u,
+func (u UserLogin) Validate(ctx context.Context, logger utils.Logger) error {
+	err := validation.ValidateStruct(&u,
 		validation.Field(&u.Username, usernameRule...),
 		validation.Field(&u.Password, passwordRule...))
 
 	if err != nil {
-		log.Error("invalid input", zap.Error(err))
+		logger.Error(ctx, "invalid input", zap.Error(err), zap.Any("user input", u))
 		err = errors.ErrInvalidInput.Wrap(err, "invalid input")
 		return err
 	}
