@@ -36,3 +36,7 @@ Feature: register user
             "email": "abebe@gmail.com"
           }    
         """
+  Scenario: Duplicate username
+    Given a user with the username "abebe" is already registered,
+    When I attempt to register with the same username "abebe",
+    Then the system should return an error message indicating that the "user already exists".

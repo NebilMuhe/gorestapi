@@ -73,7 +73,7 @@ func (u UserLogin) Validate(ctx context.Context, logger utils.Logger) error {
 
 	if err != nil {
 		logger.Error(ctx, "invalid input", zap.Error(err), zap.Any("user input", u))
-		err = errors.ErrInvalidInput.Wrap(err, "invalid input")
+		err = errors.ErrInvalidInput.Wrap(err, err.Error())
 		return err
 	}
 

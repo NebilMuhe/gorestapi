@@ -12,19 +12,19 @@ import (
 	"github.com/cucumber/godog"
 )
 
-func (u *UserRegistration) theSystemSholudReturn(arg1 string) error {
-	if u.errorMessage == arg1 {
+func (u *UserRegistration) theSystemSholudReturn(err string) error {
+	if u.errorMessage == err {
 		return nil
 	}
-	return errors.New(arg1)
+	return errors.New(err)
 }
 
-func (u *UserRegistration) userEntersAnd(arg1, arg2, arg3 string) error {
+func (u *UserRegistration) userEntersAnd(username, email, password string) error {
 	router, _, _ := setupRouter()
 	us := &User{
-		Username: arg1,
-		Email:    arg2,
-		Password: arg3,
+		Username: username,
+		Email:    email,
+		Password: password,
 	}
 
 	req, err := json.Marshal(us)
@@ -55,9 +55,9 @@ func (u *UserRegistration) userIsOnRegistrePage() error {
 	return nil
 }
 
-func (u *UserRegistration) iSendRequestToWithPayload(arg1, arg2 string, arg3 *godog.DocString) error {
+func (u *UserRegistration) iSendRequestToWithPayload(method, url string, payload *godog.DocString) error {
 	router, _, _ := setupRouter()
-	request := httptest.NewRequest(arg1, arg2, strings.NewReader(string(arg3.Content)))
+	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -67,21 +67,21 @@ func (u *UserRegistration) iSendRequestToWithPayload(arg1, arg2 string, arg3 *go
 	return nil
 }
 
-func (u *UserRegistration) theResponseCodeShouldBe(arg1 int) error {
-	if u.status == arg1 {
+func (u *UserRegistration) theResponseCodeShouldBe(code int) error {
+	if u.status == code {
 		return nil
 	}
 	return errors.New("unable to register user")
 }
 
-func (u *UserRegistration) theResponsePayloadShouldMatchJson(arg1 *godog.DocString) error {
+func (u *UserRegistration) theResponsePayloadShouldMatchJson(payload *godog.DocString) error {
 	var userdata User
 	if err := json.Unmarshal([]byte(u.response), &userdata); err != nil {
 		return err
 	}
 
 	var expectedData User
-	if err := json.Unmarshal([]byte(arg1.Content), &expectedData); err != nil {
+	if err := json.Unmarshal([]byte(payload.Content), &expectedData); err != nil {
 		return err
 	}
 
@@ -93,6 +93,44 @@ func (u *UserRegistration) theResponsePayloadShouldMatchJson(arg1 *godog.DocStri
 	return errors.New("invalid response")
 }
 
+func (u *UserRegistration) iAttemptToRegisterWithSameUsername(username string) error {
+	router, _, _ := setupRouter()
+	us := &User{
+		Username: username,
+		Email:    "abe@gmail.com",
+		Password: "12ASer%^89",
+	}
+
+	req, err := json.Marshal(us)
+	if err != nil {
+		return err
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(string(req)))
+	request.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, request)
+
+	responseBytes := w.Body.Bytes()
+	var customError CustomError
+
+	err = json.Unmarshal(responseBytes, &customError)
+	if err != nil {
+		return err
+	}
+
+	u.errorMessage = customError.ErrorMessage
+	return nil
+}
+
+func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheUserAlreayExists(err string) error {
+	if err == u.errorMessage {
+		return nil
+	}
+	return errors.New("user does not exist")
+}
+
 func InitializeRegisterScenario(ctx *godog.ScenarioContext) {
 	user := &UserRegistration{}
 	ctx.Step(`^User is on registre page$`, user.userIsOnRegistrePage)
@@ -102,6 +140,9 @@ func InitializeRegisterScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I send "([^"]*)" request to "([^"]*)" with payload:$`, user.iSendRequestToWithPayload)
 	ctx.Step(`^the response code should be (\d+)$`, user.theResponseCodeShouldBe)
 	ctx.Step(`^the response payload should match json:$`, user.theResponsePayloadShouldMatchJson)
+
+	ctx.Step(`^I attempt to register with the same username "([^"]*)",$`, user.iAttemptToRegisterWithSameUsername)
+	ctx.Step(`^the system should return an error message indicating that the "([^"]*)"\.$`, user.theSystemShouldReturnAnErrorMessageIndicatingThatTheUserAlreayExists)
 }
 
 func TestRegister(t *testing.T) {

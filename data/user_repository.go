@@ -146,7 +146,7 @@ func (u *userRepository) IsLoggedIn(ctx context.Context, username string) (bool,
 		return false, nil
 	}
 	err := errors.ErrUserAlreadyLoggedIn.Wrap(errors.ErrUserAlreadyLoggedIn.New("user already logged in"), "user already logged in")
-	u.logger.Error(ctx, "user already exists", zap.Error(err), zap.String("username", username))
+	u.logger.Error(ctx, "user already logged in", zap.Error(err), zap.String("username", username))
 	return true, err
 }
 
