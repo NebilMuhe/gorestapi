@@ -1,0 +1,24 @@
+version: '3'
+services:
+  cockroach:
+      image: cockroachdb/cockroach:latest
+      command: start-single-node --insecure
+      restart: always
+      ports:
+        - 26257:26257
+        - 8080:8080
+      volumes:
+        - cockroach-data:/cockroach/cockroach-data
+  app:
+    build: .
+    ports:
+      - 8000:8000
+    environment:
+        DB_DRIVER: postgres
+        DB_URI: postgresql://root@cockroach:26257/defaultdb?sslmode=disable
+        PORT: 8000
+    depends_on:
+      - cockroach
+
+volumes:
+  cockroach-data:

@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -42,10 +44,15 @@ func setupRouter() (*gin.Engine, *sql.DB, error) {
 	router.Router.POST("/api/login", handlers.LoginUserHandler)
 	router.Router.POST("/api/refresh", handlers.RefreshTokenHandler)
 
+	router.Router.POST("/", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"response": "welocme"})
+	})
+
 	return router.Router, db, nil
 }
 
 func main() {
+	fmt.Println("it starts")
 	router, db, err := setupRouter()
 	if err != nil {
 		return
@@ -55,6 +62,9 @@ func main() {
 	defer db.Close()
 
 	if err := router.Run(":" + PORT); err != nil {
+		fmt.Println("it is not listening")
 		log.Fatal(err)
 	}
+
+	log.Println("Listening on server ", PORT)
 }
