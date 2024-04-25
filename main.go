@@ -67,5 +67,5 @@ func main() {
 		logger.Error(context.Background(), "unable to run", zap.Error(err))
 	}
 
-	logger.Info(context.Background(), "Listening on port", zap.String("PORT", PORT))
+	// logger.Info(context.Background(), "Listening on port", zap.String("PORT", PORT))
 }

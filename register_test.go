@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -48,8 +49,8 @@ func (u *UserRegistration) userEntersAnd(username, email, password string) error
 		return err
 	}
 
-	errr := strings.Split(customError.ErrorMessage, ": ")
-	u.errorMessage = errr[1]
+	fmt.Println("custom ", customError.ErrorMessage)
+	u.errorMessage = customError.ErrorMessage
 	return nil
 }
 
@@ -145,8 +146,8 @@ func InitializeRegisterScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the response code should be (\d+)$`, user.theResponseCodeShouldBe)
 	ctx.Step(`^the response payload should match json:$`, user.theResponsePayloadShouldMatchJson)
 
-	ctx.Step(`^I attempt to register with the same username "([^"]*)",$`, user.iAttemptToRegisterWithSameUsername)
-	ctx.Step(`^the system should return an error message indicating that the "([^"]*)"\.$`, user.theSystemShouldReturnAnErrorMessageIndicatingThatTheUserAlreayExists)
+	// ctx.Step(`^I attempt to register with the same username "([^"]*)",$`, user.iAttemptToRegisterWithSameUsername)
+	// ctx.Step(`^the system should return an error message indicating that the "([^"]*)"\.$`, user.theSystemShouldReturnAnErrorMessageIndicatingThatTheUserAlreayExists)
 }
 
 func TestRegister(t *testing.T) {

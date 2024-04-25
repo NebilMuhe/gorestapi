@@ -14,11 +14,13 @@ services:
     ports:
       - 8000:8000
     environment:
-        DB_DRIVER: postgres
-        DB_URI: postgresql://root@cockroach:26257/defaultdb?sslmode=disable
+        # DB_DRIVER: postgres
+        DB_URI: postgresql://root@cockroach:26257/userstore?sslmode=disable
         PORT: 8000
     depends_on:
       - cockroach
+    entrypoint: ["/app/wait-for.sh","cockroach:26257","--","/app/start.sh"]
+    command: ["/app/server"]
 
 volumes:
   cockroach-data:

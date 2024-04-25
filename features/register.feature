@@ -6,17 +6,18 @@ Feature: register user
     Then The system sholud return "<ErrorMessage>"
     Examples:
     | Username   | Email                 | Password        | ErrorMessage                               |
-    |            | "aslak@gmail.com"     | 12QWas@#        | username required.                         |
-    | Matheo     | ""                    | 12QWas@#        | email required.                            |
-    | davide     | "david@gmail.com"     |                 | password required.                         |
-    | 123455     | "david@gmail.com"     | 12QWas@#        | username must be valid.                    |
-    | dave       | "dave@gmail.com"      | 12QWas@#        | Username length must be atleast 5 characters.       |
-    | david      | "davegmail.com"       | 12QWas@#        | email must be valid.                                |
-    | david      | "dave@gmail.com"      | 12QWas          | Password length must be atleast 8 characters long.  |
-    | david      | "dave@gmail.com"      | 12345678        | Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
-    | david      | "dave@gmail.com"      | 1234ABCD        | Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
-    | david      | "dave@gmail.com"      | 12ABCDab        | Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
-    | david1     | "dave@gmail.com"      | 12ABCD%$        | Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
+    |            | "aslak@gmail.com"     | 12QWas@#        | username: username required.                         |
+    | Matheo     | ""                    | 12QWas@#        | email: email required.                            |
+    | davide     | "david@gmail.com"     |                 | password: password required.                         |
+    | 123455     | "david@gmail.com"     | 12QWas@#        | username: username must be valid.                    |
+    | dave       | "dave@gmail.com"      | 12QWas@#        | username: Username length must be atleast 5 characters.       |
+    | david      | "davegmail.com"       | 12QWas@#        | email: email must be valid.                                |
+    | david      | "dave@gmail.com"      | 12QWas          | password: Password length must be atleast 8 characters long.  |
+    | david      | "dave@gmail.com"      | 12345678        | password: Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
+    | david      | "dave@gmail.com"      | 1234ABCD        | password: Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
+    | david      | "dave@gmail.com"      | 12ABCDab        | password: Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
+    | david1     | "dave@gmail.com"      | 12ABCD%$        | password: Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.     |
+    | testuser   | "testuser@gmail.com"  | 12ABcd%$        | user already exists     |
   
   Scenario: register user with valid input
     Given User is on registre page
@@ -36,7 +37,3 @@ Feature: register user
             "email": "abebe@gmail.com"
           }    
         """
-  Scenario: Duplicate username
-    Given a user with the username "abebe" is already registered,
-    When I attempt to register with the same username "abebe",
-    Then the system should return an error message indicating that the "user already exists".
