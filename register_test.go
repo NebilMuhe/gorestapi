@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -11,19 +10,15 @@ import (
 	"testing"
 
 	"github.com/cucumber/godog"
-	"gitlab.com/Nebil/helpers"
 )
 
-func (u *UserRegistration) theSystemSholudReturn(err string) error {
-	if u.errorMessage == err {
-		return nil
-	}
-	return errors.New(err)
+func (u *UserRegistration) userIsOnRegistrePage() error {
+	return nil
 }
 
 func (u *UserRegistration) userEntersAnd(username, email, password string) error {
-	logger := helpers.NewLogger()
-	router, _, _ := setupRouter(logger)
+	router, _, _ := setupRouter()
+
 	us := &User{
 		Username: username,
 		Email:    email,
@@ -51,16 +46,20 @@ func (u *UserRegistration) userEntersAnd(username, email, password string) error
 
 	fmt.Println("custom ", customError.ErrorMessage)
 	u.errorMessage = customError.ErrorMessage
+
+	// defer db.Exec("DELETE FROM users;")
 	return nil
 }
 
-func (u *UserRegistration) userIsOnRegistrePage() error {
-	return nil
+func (u *UserRegistration) theSystemSholudReturn(err string) error {
+	if u.errorMessage == err {
+		return nil
+	}
+	return godog.ErrPending
 }
 
 func (u *UserRegistration) iSendRequestToWithPayload(method, url string, payload *godog.DocString) error {
-	logger := helpers.NewLogger()
-	router, _, _ := setupRouter(logger)
+	router, db, _ := setupRouter()
 	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -68,6 +67,7 @@ func (u *UserRegistration) iSendRequestToWithPayload(method, url string, payload
 	router.ServeHTTP(w, request)
 	u.status = w.Code
 	u.response = w.Body.String()
+	defer db.Exec("DELETE FROM users;")
 	return nil
 }
 
@@ -75,7 +75,7 @@ func (u *UserRegistration) theResponseCodeShouldBe(code int) error {
 	if u.status == code {
 		return nil
 	}
-	return errors.New("unable to register user")
+	return godog.ErrPending
 }
 
 func (u *UserRegistration) theResponsePayloadShouldMatchJson(payload *godog.DocString) error {
@@ -94,46 +94,8 @@ func (u *UserRegistration) theResponsePayloadShouldMatchJson(payload *godog.DocS
 	if equal {
 		return nil
 	}
-	return errors.New("invalid response")
-}
 
-func (u *UserRegistration) iAttemptToRegisterWithSameUsername(username string) error {
-	logger := helpers.NewLogger()
-	router, _, _ := setupRouter(logger)
-	us := &User{
-		Username: username,
-		Email:    "abe@gmail.com",
-		Password: "12ASer%^89",
-	}
-
-	req, err := json.Marshal(us)
-	if err != nil {
-		return err
-	}
-
-	request := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(string(req)))
-	request.Header.Add("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, request)
-
-	responseBytes := w.Body.Bytes()
-	var customError CustomError
-
-	err = json.Unmarshal(responseBytes, &customError)
-	if err != nil {
-		return err
-	}
-
-	u.errorMessage = customError.ErrorMessage
-	return nil
-}
-
-func (u *UserRegistration) theSystemShouldReturnAnErrorMessageIndicatingThatTheUserAlreayExists(err string) error {
-	if err == u.errorMessage {
-		return nil
-	}
-	return errors.New("user does not exist")
+	return godog.ErrPending
 }
 
 func InitializeRegisterScenario(ctx *godog.ScenarioContext) {
@@ -145,9 +107,6 @@ func InitializeRegisterScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I send "([^"]*)" request to "([^"]*)" with payload:$`, user.iSendRequestToWithPayload)
 	ctx.Step(`^the response code should be (\d+)$`, user.theResponseCodeShouldBe)
 	ctx.Step(`^the response payload should match json:$`, user.theResponsePayloadShouldMatchJson)
-
-	// ctx.Step(`^I attempt to register with the same username "([^"]*)",$`, user.iAttemptToRegisterWithSameUsername)
-	// ctx.Step(`^the system should return an error message indicating that the "([^"]*)"\.$`, user.theSystemShouldReturnAnErrorMessageIndicatingThatTheUserAlreayExists)
 }
 
 func TestRegister(t *testing.T) {

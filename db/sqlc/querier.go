@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	DeleteTable(ctx context.Context) ([]User, error)
 	FindBYEmail(ctx context.Context, email string) (User, error)
 	FindBYUsername(ctx context.Context, username string) (User, error)
 	IsLoggedIn(ctx context.Context, username string) (Session, error)

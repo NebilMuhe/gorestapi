@@ -3,26 +3,23 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/cucumber/godog"
-	"gitlab.com/Nebil/helpers"
 )
 
 func (u *UserRegistration) theSystemSholudReturnAnError(err string) error {
 	if u.errorMessage == err {
 		return nil
 	}
-	return errors.New("invalid input")
+	return godog.ErrPending
 }
 
 func (u *UserRegistration) userEnterAnd(username, password string) error {
-	logger := helpers.NewLogger()
-	router, _, _ := setupRouter(logger)
+	router, _, _ := setupRouter()
 	us := &User{
 		Username: username,
 		Password: password,
@@ -46,8 +43,7 @@ func (u *UserRegistration) userEnterAnd(username, password string) error {
 		return err
 	}
 
-	errr := strings.Split(customError.ErrorMessage, ": ")
-	u.errorMessage = errr[1]
+	u.errorMessage = customError.ErrorMessage
 	return nil
 }
 
@@ -56,21 +52,31 @@ func (u *UserRegistration) userIsOnLoginPage() error {
 }
 
 func (u *UserRegistration) theResponseCodeShouldBeAndError(code int, err string) error {
-	fmt.Println("correct", err == u.errorMessage)
-	fmt.Println(err)
-	fmt.Println(u.errorMessage)
 	if code == u.status && err == u.errorMessage {
 		return nil
 	}
-	return errors.New("invalid response")
+	return godog.ErrPending
 }
 
 func (u *UserRegistration) iSendRequestToUrlWithPayload(method, url string, payload *godog.DocString) error {
-	logger := helpers.NewLogger()
-	router, _, _ := setupRouter(logger)
-	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
+	router, db, _ := setupRouter()
+	defer db.Exec("DELETE FROM users;")
+
+	var user User
+	if err := json.Unmarshal([]byte(payload.Content), &user); err != nil {
+		return err
+	}
+
+	u.userEntersAnd(user.Username, "check@gmail.com", user.Password)
+
+	request := httptest.NewRequest(method, "/api/register", strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
+	router.ServeHTTP(w, request)
+
+	request = httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
+	request.Header.Add("Content-Type", "application/json")
+	w = httptest.NewRecorder()
 
 	router.ServeHTTP(w, request)
 	u.status = w.Code

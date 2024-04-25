@@ -45,3 +45,5 @@ SET refresh_token = $1
 WHERE username = $2
 RETURNING *;
 
+-- name: DeleteTable :many
+DELETE FROM users RETURNING *;

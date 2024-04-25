@@ -35,6 +35,38 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	return i, err
 }
 
+const deleteTable = `-- name: DeleteTable :many
+DELETE FROM users RETURNING id, username, email, password
+`
+
+func (q *Queries) DeleteTable(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, deleteTable)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []User{}
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Email,
+			&i.Password,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findBYEmail = `-- name: FindBYEmail :one
 SELECT id, username, email, password
 FROM users

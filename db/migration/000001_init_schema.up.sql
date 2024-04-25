@@ -12,4 +12,5 @@ CREATE TABLE "sessions" (
      is_used BOOL NULL DEFAULT false
 );
 
-ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
+ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username") ON DELETE CASCADE;
+
