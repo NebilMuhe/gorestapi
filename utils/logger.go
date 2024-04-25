@@ -8,7 +8,7 @@ import (
 
 type Logger interface {
 	Error(ctx context.Context, message string, fields ...zap.Field)
-	GetLogger() *zap.Logger
+	Info(ctx context.Context, message string, fields ...zap.Field)
 }
 
 type logger struct {
@@ -17,10 +17,6 @@ type logger struct {
 
 func NewLogger(l *zap.Logger) Logger {
 	return &logger{l}
-}
-
-func (l *logger) GetLogger() *zap.Logger {
-	return l.logger
 }
 
 func (l *logger) Error(ctx context.Context, message string, fields ...zap.Field) {
@@ -32,4 +28,8 @@ func (l *logger) Error(ctx context.Context, message string, fields ...zap.Field)
 		fields = append(fields, zap.String("requestID", userID))
 	}
 	l.logger.Error(message, fields...)
+}
+
+func (l *logger) Info(ctx context.Context, message string, fields ...zap.Field) {
+	l.logger.Info(message, fields...)
 }

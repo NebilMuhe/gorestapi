@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/cucumber/godog"
+	"gitlab.com/Nebil/helpers"
 )
 
 func (u *UserRegistration) theSystemSholudReturn(err string) error {
@@ -20,7 +21,8 @@ func (u *UserRegistration) theSystemSholudReturn(err string) error {
 }
 
 func (u *UserRegistration) userEntersAnd(username, email, password string) error {
-	router, _, _ := setupRouter()
+	logger := helpers.NewLogger()
+	router, _, _ := setupRouter(logger)
 	us := &User{
 		Username: username,
 		Email:    email,
@@ -56,7 +58,8 @@ func (u *UserRegistration) userIsOnRegistrePage() error {
 }
 
 func (u *UserRegistration) iSendRequestToWithPayload(method, url string, payload *godog.DocString) error {
-	router, _, _ := setupRouter()
+	logger := helpers.NewLogger()
+	router, _, _ := setupRouter(logger)
 	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -94,7 +97,8 @@ func (u *UserRegistration) theResponsePayloadShouldMatchJson(payload *godog.DocS
 }
 
 func (u *UserRegistration) iAttemptToRegisterWithSameUsername(username string) error {
-	router, _, _ := setupRouter()
+	logger := helpers.NewLogger()
+	router, _, _ := setupRouter(logger)
 	us := &User{
 		Username: username,
 		Email:    "abe@gmail.com",

@@ -1,9 +1,8 @@
 package main
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -14,25 +13,28 @@ import (
 	"gitlab.com/Nebil/handler"
 	"gitlab.com/Nebil/helpers"
 	"gitlab.com/Nebil/service"
+	"gitlab.com/Nebil/utils"
+	"go.uber.org/zap"
 )
 
-func setupRouter() (*gin.Engine, *sql.DB, error) {
-	logger := helpers.NewLogger()
-
+func setupRouter(logger utils.Logger) (*gin.Engine, *sql.DB, error) {
 	err := helpers.LoadEnv()
 	if err != nil {
-		log.Println(err)
+		logger.Error(context.Background(), "unable to load enviromental variable", zap.Error(err))
 		return nil, nil, err
 	}
+	logger.Info(context.Background(), "loaded the enviromental variable successfully")
 
 	DB_DRIVER := os.Getenv("DB_DRIVER")
 	DB_URI := os.Getenv("DB_URI")
 
 	db, err := data.ConnectDB(DB_DRIVER, DB_URI)
 	if err != nil {
-		log.Println(err)
+		logger.Error(context.Background(), "unable to connect to database", zap.Error(err))
 		return nil, nil, err
 	}
+
+	logger.Info(context.Background(), "connected successfully to the database")
 
 	repo := data.NewUserRepository(db, logger)
 	service := service.NewUserService(repo, logger)
@@ -52,8 +54,8 @@ func setupRouter() (*gin.Engine, *sql.DB, error) {
 }
 
 func main() {
-	fmt.Println("it starts")
-	router, db, err := setupRouter()
+	logger := helpers.NewLogger()
+	router, db, err := setupRouter(logger)
 	if err != nil {
 		return
 	}
@@ -62,9 +64,8 @@ func main() {
 	defer db.Close()
 
 	if err := router.Run(":" + PORT); err != nil {
-		fmt.Println("it is not listening")
-		log.Fatal(err)
+		logger.Error(context.Background(), "unable to run", zap.Error(err))
 	}
 
-	log.Println("Listening on server ", PORT)
+	logger.Info(context.Background(), "Listening on port", zap.String("PORT", PORT))
 }

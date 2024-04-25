@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/cucumber/godog"
+	"gitlab.com/Nebil/helpers"
 )
 
 func (u *UserRegistration) theSystemSholudReturnAnError(err string) error {
@@ -20,7 +21,8 @@ func (u *UserRegistration) theSystemSholudReturnAnError(err string) error {
 }
 
 func (u *UserRegistration) userEnterAnd(username, password string) error {
-	router, _, _ := setupRouter()
+	logger := helpers.NewLogger()
+	router, _, _ := setupRouter(logger)
 	us := &User{
 		Username: username,
 		Password: password,
@@ -64,7 +66,8 @@ func (u *UserRegistration) theResponseCodeShouldBeAndError(code int, err string)
 }
 
 func (u *UserRegistration) iSendRequestToUrlWithPayload(method, url string, payload *godog.DocString) error {
-	router, _, _ := setupRouter()
+	logger := helpers.NewLogger()
+	router, _, _ := setupRouter(logger)
 	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()

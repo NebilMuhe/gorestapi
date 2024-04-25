@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/cucumber/godog"
+	"gitlab.com/Nebil/helpers"
 )
 
 type UserRegistration struct {
@@ -30,7 +31,8 @@ type CustomError struct {
 }
 
 func (u *UserRegistration) aUserWithTheUsernameIsAlreadyRegistered(username string) error {
-	router, _, _ := setupRouter()
+	logger := helpers.NewLogger()
+	router, _, _ := setupRouter(logger)
 
 	us := &User{
 		Username: username,
