@@ -101,7 +101,7 @@ func (u *userRepository) Login(ctx context.Context, user *models.UserLogin) (*mo
 	if err != nil {
 		u.logger.Error(ctx, "unable to login", zap.Error(err), zap.String("username", user.Username))
 		if err == sql.ErrNoRows {
-			err := errors.ErrNotFound.Wrap(err, "not found")
+			err := errors.ErrNotFound.Wrap(err, "invalid credential")
 			return nil, err
 		}
 		return nil, errors.ErrUnableToRead.Wrap(err, "unable to login")

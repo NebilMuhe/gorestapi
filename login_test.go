@@ -20,6 +20,7 @@ func (u *UserRegistration) theSystemSholudReturnAnError(err string) error {
 
 func (u *UserRegistration) userEnterAnd(username, password string) error {
 	router, _, _ := setupRouter()
+
 	us := &User{
 		Username: username,
 		Password: password,
@@ -51,13 +52,6 @@ func (u *UserRegistration) userIsOnLoginPage() error {
 	return nil
 }
 
-func (u *UserRegistration) theResponseCodeShouldBeAndError(code int, err string) error {
-	if code == u.status && err == u.errorMessage {
-		return nil
-	}
-	return godog.ErrPending
-}
-
 func (u *UserRegistration) iSendRequestToUrlWithPayload(method, url string, payload *godog.DocString) error {
 	router, db, _ := setupRouter()
 	defer db.Exec("DELETE FROM users;")
@@ -69,14 +63,9 @@ func (u *UserRegistration) iSendRequestToUrlWithPayload(method, url string, payl
 
 	u.userEntersAnd(user.Username, "check@gmail.com", user.Password)
 
-	request := httptest.NewRequest(method, "/api/register", strings.NewReader(string(payload.Content)))
+	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-
-	request = httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
-	request.Header.Add("Content-Type", "application/json")
-	w = httptest.NewRecorder()
 
 	router.ServeHTTP(w, request)
 	u.status = w.Code
@@ -107,8 +96,6 @@ func InitializeLoginScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^The system sholud return an error "([^"]*)"$`, user.theSystemSholudReturnAnError)
 
 	ctx.Step(`^I send "([^"]*)" request to url "([^"]*)" with payload:$`, user.iSendRequestToUrlWithPayload)
-	ctx.Step(`^the response code should be (\d+) and error "([^"]*)"$`, user.theResponseCodeShouldBeAndError)
-
 	ctx.Step(`^the response code should be (\d+) and issue JWT$`, user.theResponseCodeShouldBeAndIssueJWT)
 }
 

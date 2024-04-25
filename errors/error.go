@@ -68,7 +68,7 @@ var (
 	internalServer         = errorx.NewNamespace("internal server error")
 	ErrInternalServer      = errorx.NewType(internalServer, "internal server error")
 	notFound               = errorx.NewNamespace("not found")
-	ErrNotFound            = errorx.NewType(notFound, "not found")
+	ErrNotFound            = errorx.NewType(notFound, "invalid credential")
 	unableToRead           = errorx.NewNamespace("unable to read")
 	ErrUnableToRead        = errorx.NewType(unableToRead, "unable to read")
 	userAlreadyLoggedIn    = errorx.NewNamespace("user already logged in")

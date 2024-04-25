@@ -15,7 +15,7 @@ Feature: login user
         | david      | 1234ABCD              | password: Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.  |
         | david      | 12ABCDab              | password: Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.  |
         | david1     | 12ABCD%$              | password: Password must contain atleast one uppercase letters,one lowercase letters, digits and special characters.  |
-        | abebe1     | 12ABCD%$ab            | not found  |
+        | abebe1     | 12ABCD%$ab            | invalid credential  |
 
     Scenario: login request with valid username and password
         Given User is on login page
