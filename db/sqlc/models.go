@@ -5,18 +5,18 @@
 package db
 
 import (
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Session struct {
-	ID           uuid.UUID `json:"id"`
-	Username     string    `json:"username"`
-	RefreshToken string    `json:"refresh_token"`
+	ID           pgtype.UUID `json:"id"`
+	Username     string      `json:"username"`
+	RefreshToken string      `json:"refresh_token"`
 }
 
 type User struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
-	Password string    `json:"password"`
+	ID       pgtype.UUID `json:"id"`
+	Username string      `json:"username"`
+	Email    string      `json:"email"`
+	Password string      `json:"password"`
 }

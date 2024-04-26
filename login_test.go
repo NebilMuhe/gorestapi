@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -54,7 +55,7 @@ func (u *UserRegistration) userIsOnLoginPage() error {
 
 func (u *UserRegistration) iSendRequestToUrlWithPayload(method, url string, payload *godog.DocString) error {
 	router, db, _ := setupRouter()
-	defer db.Exec("DELETE FROM users;")
+	defer db.Exec(context.Background(), "DELETE FROM users;")
 
 	var user User
 	if err := json.Unmarshal([]byte(payload.Content), &user); err != nil {

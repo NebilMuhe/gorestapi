@@ -24,7 +24,7 @@ type CreateSessionParams struct {
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
-	row := q.db.QueryRowContext(ctx, createSession, arg.Username, arg.RefreshToken)
+	row := q.db.QueryRow(ctx, createSession, arg.Username, arg.RefreshToken)
 	var i Session
 	err := row.Scan(&i.ID, &i.Username, &i.RefreshToken)
 	return i, err
@@ -35,7 +35,7 @@ DELETE FROM users RETURNING id, username, email, password
 `
 
 func (q *Queries) DeleteTable(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, deleteTable)
+	rows, err := q.db.Query(ctx, deleteTable)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +53,6 @@ func (q *Queries) DeleteTable(ctx context.Context) ([]User, error) {
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -70,7 +67,7 @@ LIMIT 1
 `
 
 func (q *Queries) FindBYEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, findBYEmail, email)
+	row := q.db.QueryRow(ctx, findBYEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -89,7 +86,7 @@ LIMIT 1
 `
 
 func (q *Queries) FindBYUsername(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRowContext(ctx, findBYUsername, username)
+	row := q.db.QueryRow(ctx, findBYUsername, username)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -108,7 +105,7 @@ LIMIT 1
 `
 
 func (q *Queries) IsLoggedIn(ctx context.Context, username string) (Session, error) {
-	row := q.db.QueryRowContext(ctx, isLoggedIn, username)
+	row := q.db.QueryRow(ctx, isLoggedIn, username)
 	var i Session
 	err := row.Scan(&i.ID, &i.Username, &i.RefreshToken)
 	return i, err
@@ -122,7 +119,7 @@ LIMIT 1
 `
 
 func (q *Queries) LoginUser(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRowContext(ctx, loginUser, username)
+	row := q.db.QueryRow(ctx, loginUser, username)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -150,7 +147,7 @@ type RegisterUserParams struct {
 }
 
 func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, registerUser, arg.Username, arg.Email, arg.Password)
+	row := q.db.QueryRow(ctx, registerUser, arg.Username, arg.Email, arg.Password)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -174,7 +171,7 @@ type UpdateSessionParams struct {
 }
 
 func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error) {
-	row := q.db.QueryRowContext(ctx, updateSession, arg.RefreshToken, arg.Username)
+	row := q.db.QueryRow(ctx, updateSession, arg.RefreshToken, arg.Username)
 	var i Session
 	err := row.Scan(&i.ID, &i.Username, &i.RefreshToken)
 	return i, err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/jackc/pgx/v5"
 	db "gitlab.com/Nebil/db/sqlc"
 	"gitlab.com/Nebil/errors"
 	"gitlab.com/Nebil/models"
@@ -12,7 +13,7 @@ import (
 )
 
 type userRepository struct {
-	Database *sql.DB
+	Database *pgx.Conn
 	queries  *db.Queries
 	logger   utils.Logger
 }
@@ -26,7 +27,7 @@ type UserRepository interface {
 	UpdateToken(ctx context.Context, token, username string) (*models.RefToken, error)
 }
 
-func NewUserRepository(database *sql.DB, logger utils.Logger) UserRepository {
+func NewUserRepository(database *pgx.Conn, logger utils.Logger) UserRepository {
 	return &userRepository{
 		Database: database,
 		queries:  db.New(database),
@@ -34,13 +35,14 @@ func NewUserRepository(database *sql.DB, logger utils.Logger) UserRepository {
 	}
 }
 
-func ConnectDB(driver, url string) (*sql.DB, error) {
-	db, err := sql.Open(driver, url)
+func ConnectDB(url string) (*pgx.Conn, error) {
+	// db, err := sql.Open(driver, url)
+	db, err := pgx.Connect(context.Background(), url)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.Ping()
+	err = db.Ping(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +110,7 @@ func (u *userRepository) Login(ctx context.Context, user *models.UserLogin) (*mo
 	}
 
 	res := &models.UserLogin{
-		ID:       usr.ID.String(),
+		ID:       user.ID,
 		Username: usr.Username,
 		Password: usr.Password,
 	}
@@ -130,7 +132,7 @@ func (u *userRepository) Refresh(ctx context.Context, username string, refresh_t
 	}
 
 	res := &models.RefToken{
-		ID:            session.ID.String(),
+		// ID:            session.ID,
 		Username:      session.Username,
 		Refresh_Token: session.RefreshToken,
 	}
@@ -175,7 +177,7 @@ func (u *userRepository) UpdateToken(ctx context.Context, token, username string
 	}
 
 	return &models.RefToken{
-		ID:            session.ID.String(),
+		// ID:            session,
 		Username:      session.Username,
 		Refresh_Token: session.RefreshToken,
 	}, nil

@@ -1,9 +1,36 @@
+# version: '3'
+# services:
+#   cockroach:
+#       image: cockroachdb/cockroach:latest
+#       command: start-single-node --insecure
+#       restart: always
+#       ports:
+#         - 26257:26257
+#         - 8080:8080
+#       volumes:
+#         - cockroach-data:/cockroach/cockroach-data
+#   app:
+#     build: .
+#     ports:
+#       - 8000:8000
+#     environment:
+#         # DB_DRIVER: postgres
+#         DB_URI: postgresql://root@cockroach:26257/userstore?sslmode=disable
+#         # DB_URI: cockroachdb://root:@cockroach:26257/userstore?sslmode=disable
+#         PORT: 8000
+#     depends_on:
+#       - cockroach
+#     # entrypoint: ["/app/wait-for.sh","cockroach:26257","--","/app/start.sh"]
+#     # command: ["/app/server"]
+
+# volumes:
+#   cockroach-data:
+
 version: '3'
 services:
   cockroach:
       image: cockroachdb/cockroach:latest
       command: start-single-node --insecure
-      restart: always
       ports:
         - 26257:26257
         - 8080:8080
@@ -14,9 +41,9 @@ services:
     ports:
       - 8000:8000
     environment:
-        # DB_DRIVER: postgres
-        DB_URI: postgresql://root@cockroach:26257/userstore?sslmode=disable
-        PORT: 8000
+      # DB_URI: postgresql://root@cockroach:26257/userstore?sslmode=disable
+      DB_DRIVER: postgres
+      DB_URI: cockroachdb://root:@lcockroach:26257/userstore?sslmode=disable
     depends_on:
       - cockroach
     entrypoint: ["/app/wait-for.sh","cockroach:26257","--","/app/start.sh"]

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -60,7 +61,7 @@ func (u *UserRegistration) theSystemSholudReturn(err string) error {
 
 func (u *UserRegistration) iSendRequestToWithPayload(method, url string, payload *godog.DocString) error {
 	router, db, _ := setupRouter()
-	defer db.Exec("DELETE FROM users;")
+	defer db.Exec(context.Background(), "DELETE FROM users;")
 	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()

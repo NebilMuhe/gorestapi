@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"gitlab.com/Nebil/data"
 	"gitlab.com/Nebil/handler"
 	"gitlab.com/Nebil/helpers"
@@ -33,7 +33,7 @@ type CustomError struct {
 	Status       int    `json:"status"`
 }
 
-func setupRouter() (*gin.Engine, *sql.DB, error) {
+func setupRouter() (*gin.Engine, *pgx.Conn, error) {
 	logger := helpers.NewLogger()
 	err := helpers.LoadEnv()
 	if err != nil {
@@ -42,10 +42,9 @@ func setupRouter() (*gin.Engine, *sql.DB, error) {
 	}
 	logger.Info(context.Background(), "loaded the enviromental variable successfully")
 
-	DB_DRIVER := os.Getenv("DB_DRIVER")
 	DB_URI := os.Getenv("DB_URI")
 
-	db, err := data.ConnectDB(DB_DRIVER, DB_URI)
+	db, err := data.ConnectDB(DB_URI)
 	if err != nil {
 		logger.Error(context.Background(), "unable to connect to database", zap.Error(err))
 		return nil, nil, err
