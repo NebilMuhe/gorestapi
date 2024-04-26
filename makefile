@@ -1,7 +1,9 @@
-DB_URL=postgresql://root@localhost:26257/userstore?sslmode=disable
+COCKROACHDB_URL=cockroachdb://cockroach:@localhost:26257/userstore?sslmode=disable
 migrate-up:
-	migrate -path db/migration -database "${DB_URL}" -verbose up
+	migrate -database ${COCKROACHDB_URL} -path db/migration up
 migrate-down:
-	migrate -path db/migration -database "${DB_URL}" -verbose down
+	migrate -database ${COCKROACHDB_URL} -path db/migration down
+sqlc:
+	sqlc generate
 
 .PHONY: migrate-up migrate-down

@@ -25,9 +25,7 @@ Feature: register user
     When I send "POST" request to "/api/register" with payload:
         """
         {
-            "username": "abebe",
-            "email": "abebe@gmail.com",
-            "password": "12ABCD%$ab"
+            "username": "abebe","email": "abebe@gmail.com","password": "12ABCD%$ab"
         }   
         """
     Then the response code should be 201

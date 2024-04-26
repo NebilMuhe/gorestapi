@@ -15,7 +15,7 @@ INSERT INTO sessions (
   refresh_token
 ) VALUES (
   $1, $2
-) RETURNING id, username, refresh_token, is_used
+) RETURNING id, username, refresh_token
 `
 
 type CreateSessionParams struct {
@@ -26,12 +26,7 @@ type CreateSessionParams struct {
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
 	row := q.db.QueryRowContext(ctx, createSession, arg.Username, arg.RefreshToken)
 	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.RefreshToken,
-		&i.IsUsed,
-	)
+	err := row.Scan(&i.ID, &i.Username, &i.RefreshToken)
 	return i, err
 }
 
@@ -106,7 +101,7 @@ func (q *Queries) FindBYUsername(ctx context.Context, username string) (User, er
 }
 
 const isLoggedIn = `-- name: IsLoggedIn :one
-SELECT id, username, refresh_token, is_used
+SELECT id, username, refresh_token
 FROM sessions
 WHERE username = $1
 LIMIT 1
@@ -115,12 +110,7 @@ LIMIT 1
 func (q *Queries) IsLoggedIn(ctx context.Context, username string) (Session, error) {
 	row := q.db.QueryRowContext(ctx, isLoggedIn, username)
 	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.RefreshToken,
-		&i.IsUsed,
-	)
+	err := row.Scan(&i.ID, &i.Username, &i.RefreshToken)
 	return i, err
 }
 
@@ -175,7 +165,7 @@ const updateSession = `-- name: UpdateSession :one
 UPDATE sessions
 SET refresh_token = $1
 WHERE username = $2
-RETURNING id, username, refresh_token, is_used
+RETURNING id, username, refresh_token
 `
 
 type UpdateSessionParams struct {
@@ -186,11 +176,6 @@ type UpdateSessionParams struct {
 func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error) {
 	row := q.db.QueryRowContext(ctx, updateSession, arg.RefreshToken, arg.Username)
 	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.RefreshToken,
-		&i.IsUsed,
-	)
+	err := row.Scan(&i.ID, &i.Username, &i.RefreshToken)
 	return i, err
 }

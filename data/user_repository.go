@@ -133,7 +133,6 @@ func (u *userRepository) Refresh(ctx context.Context, username string, refresh_t
 		ID:            session.ID.String(),
 		Username:      session.Username,
 		Refresh_Token: session.RefreshToken,
-		IsUsed:        session.IsUsed.Bool,
 	}
 
 	return res, nil
@@ -179,6 +178,5 @@ func (u *userRepository) UpdateToken(ctx context.Context, token, username string
 		ID:            session.ID.String(),
 		Username:      session.Username,
 		Refresh_Token: session.RefreshToken,
-		IsUsed:        session.IsUsed.Bool,
 	}, nil
 }

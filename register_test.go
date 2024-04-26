@@ -60,6 +60,7 @@ func (u *UserRegistration) theSystemSholudReturn(err string) error {
 
 func (u *UserRegistration) iSendRequestToWithPayload(method, url string, payload *godog.DocString) error {
 	router, db, _ := setupRouter()
+	defer db.Exec("DELETE FROM users;")
 	request := httptest.NewRequest(method, url, strings.NewReader(string(payload.Content)))
 	request.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -67,7 +68,8 @@ func (u *UserRegistration) iSendRequestToWithPayload(method, url string, payload
 	router.ServeHTTP(w, request)
 	u.status = w.Code
 	u.response = w.Body.String()
-	defer db.Exec("DELETE FROM users;")
+
+	fmt.Println("code ", w.Code)
 	return nil
 }
 

@@ -26,3 +26,77 @@ Scenario:  Invalid Email Format
    Given I am attempting to log in with an invalid password,
    When I submit the login form,
    Then the system should return an error message indicating that the password is incorrect.
+
+
+  CREATE TABLE "users" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "username" STRING NOT NULL UNIQUE,
+    "email" STRING NOT NULL UNIQUE,
+    "password" STRING NOT NULL
+);
+
+CREATE TABLE "sessions" (
+     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     username STRING NOT NULL UNIQUE,
+     refresh_token STRING NOT NULL,
+     is_used BOOL NULL DEFAULT false
+);
+
+ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username") ON DELETE CASCADE;
+
+DROP TABLE IF EXISTS "users";
+
+DROP TABLE IF EXISTS "sessions";
+
+-- name: RegisterUser :one
+INSERT INTO users (
+  username,
+  email,
+  password
+) VALUES (
+  $1, $2, $3
+) RETURNING *;
+
+-- name: FindBYEmail :one
+SELECT *
+FROM users
+WHERE email = $1
+LIMIT 1;
+
+-- name: FindBYUsername :one
+SELECT *
+FROM users
+WHERE username = $1
+LIMIT 1;
+
+-- name: LoginUser :one
+SELECT *
+FROM users
+WHERE username = $1
+LIMIT 1;
+
+-- name: CreateSession :one
+INSERT INTO sessions (
+  username,
+  refresh_token
+) VALUES (
+  $1, $2
+) RETURNING *;
+
+-- name: IsLoggedIn :one
+SELECT *
+FROM sessions
+WHERE username = $1
+LIMIT 1;
+
+-- name: UpdateSession :one
+UPDATE sessions
+SET refresh_token = $1
+WHERE username = $2
+RETURNING *;
+
+-- name: DeleteTable :many
+DELETE FROM users RETURNING *;
+
+
+
