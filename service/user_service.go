@@ -14,8 +14,8 @@ import (
 
 type UserService interface {
 	RegisterUser(ctx context.Context, user models.User) (*models.User, error)
-	LoginUser(ctx context.Context, requestID string, user models.UserLogin) (map[string]string, error)
-	RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error)
+	LoginUser(ctx context.Context, user models.UserLogin) (map[string]string, error)
+	RefreshToken(ctx context.Context, tokeString string) (map[string]string, error)
 }
 
 type userService struct {
@@ -53,7 +53,7 @@ func (u *userService) RegisterUser(ctx context.Context, user models.User) (*mode
 }
 
 // LoginUser implements UserService.
-func (u *userService) LoginUser(ctx context.Context, requestID string, user models.UserLogin) (map[string]string, error) {
+func (u *userService) LoginUser(ctx context.Context, user models.UserLogin) (map[string]string, error) {
 	err := user.Validate(ctx, u.logger)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (u *userService) LoginUser(ctx context.Context, requestID string, user mode
 }
 
 // RefreshToken implements UserService.
-func (u *userService) RefreshToken(ctx context.Context, requestID string, tokeString string) (map[string]string, error) {
+func (u *userService) RefreshToken(ctx context.Context, tokeString string) (map[string]string, error) {
 	err := helpers.VerifyToken(ctx, tokeString, u.logger)
 	if err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -90,13 +91,14 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 	go func() {
 		var user models.UserLogin
 		if err := ctx.ShouldBindJSON(&user); err != nil {
+			fmt.Println()
 			u.logger.Error(contx, "invalid input", zap.Error(err))
 			err = errors.ErrBadRequest.Wrap(err, "invalid input")
 			errChan <- err
 			return
 		}
 
-		token, err := u.service.LoginUser(contx, requestID.(string), user)
+		token, err := u.service.LoginUser(contx, user)
 
 		if err != nil {
 			errChan <- err
@@ -127,7 +129,6 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 	requestID, _ := ctx.Get("requestID")
 	contx := context.WithValue(reqCtx, "requestID", requestID)
 	go func() {
-		requestID, _ := ctx.Get("requestID")
 		authorization := ctx.Request.Header.Get("Authorization")
 		if authorization == "" || !strings.HasPrefix(authorization, "Bearer ") {
 			err := errors.ErrBadRequest.Wrap(errors.ErrBadRequest.New("invalid credentials"), "invalid credentials")
@@ -144,7 +145,7 @@ func (u *userHandler) RefreshTokenHandler(ctx *gin.Context) {
 			return
 		}
 
-		token, err := u.service.RefreshToken(contx, requestID.(string), tokenString)
+		token, err := u.service.RefreshToken(contx, tokenString)
 		if err != nil {
 			errChan <- err
 			return

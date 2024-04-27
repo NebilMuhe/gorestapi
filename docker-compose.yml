@@ -42,8 +42,10 @@ services:
       - 8000:8000
     environment:
       # DB_URI: postgresql://root@cockroach:26257/userstore?sslmode=disable
-      DB_DRIVER: postgres
-      DB_URI: cockroachdb://root:@lcockroach:26257/userstore?sslmode=disable
+      # DB_URI: "$COCKROACHDB_URL"
+      # DB_URI: cockroachdb://cockroach:@cockroach:26257/userstore?sslmode=disable
+      DB_URI: postgresql://root@cockroach:26257/userstore?sslmode=disable
+      DB_SOURCE: cockroachdb://root:@cockroach:26257/userstore?sslmode=disable
     depends_on:
       - cockroach
     entrypoint: ["/app/wait-for.sh","cockroach:26257","--","/app/start.sh"]

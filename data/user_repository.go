@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/jackc/pgx/v5"
 	db "gitlab.com/Nebil/db/sqlc"
@@ -100,9 +99,10 @@ func (u *userRepository) IsExists(ctx context.Context, user *models.User) (bool,
 // Login implements service.UserRepository.
 func (u *userRepository) Login(ctx context.Context, user *models.UserLogin) (*models.UserLogin, error) {
 	usr, err := u.queries.FindBYUsername(ctx, user.Username)
+
 	if err != nil {
 		u.logger.Error(ctx, "unable to login", zap.Error(err), zap.String("username", user.Username))
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			err := errors.ErrNotFound.Wrap(err, "invalid credential")
 			return nil, err
 		}

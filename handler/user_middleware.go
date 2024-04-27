@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,14 +14,13 @@ import (
 
 func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		fmt.Println("it does not work")
 		c, cancel := context.WithTimeout(ctx.Request.Context(), timeout)
 		defer cancel()
-		requestID, err := helpers.GenerateRequestID(ctx)
-		if err != nil {
-			ctx.Abort()
-			return
-		}
+		requestID := helpers.GenerateRequestID(ctx)
+		fmt.Println("request id", requestID)
 
+		fmt.Println("why the middleware does not work")
 		ctx.Set("requestID", requestID)
 		ctx.Request = ctx.Request.WithContext(c)
 		ctx.Next()

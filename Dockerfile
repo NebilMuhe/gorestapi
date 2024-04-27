@@ -22,7 +22,12 @@ COPY ./go.* ./
 
 RUN go mod download
 COPY . .
+
+# RUN mkdir -p /app/migrate
 RUN go build -o /app/server
+
+# Build a migration binary
+# RUN go build -o /app/migrate ./migrate
 
 FROM alpine:3.18
 WORKDIR /app
@@ -31,6 +36,8 @@ COPY .env .
 COPY start.sh .
 COPY wait-for.sh .
 COPY db/migration ./db/migration
+# RUN chmod +x migrate
+# RUN ./migrate -path ./db/migration -database "postgresql://root@cockroach:26257/userstore?sslmode=disable" up
 
 EXPOSE 8000
 CMD [ "./server" ]

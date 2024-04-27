@@ -9,12 +9,11 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/joomcode/errorx"
 	"gitlab.com/Nebil/errors"
@@ -42,14 +41,15 @@ func LoadEnv() error {
 	return nil
 }
 
-func GenerateRequestID(ctx *gin.Context) (string, error) {
-	uuid, err := exec.Command("uuidgen").Output()
-	if err != nil {
-		return "", errors.ErrUnableToCreate.Wrap(err, "unable to create")
-	}
+func GenerateRequestID(ctx *gin.Context) string {
+	// uuid, err := exec.Command("uuidgen").Output()
+	// if err != nil {
+	// 	return "", errors.ErrUnableToCreate.Wrap(err, "unable to create")
+	// }
 
-	requestID := strings.Split(string(uuid), "\n")[0]
-	return requestID, nil
+	// requestID := strings.Split(string(uuid), "\n")[0]
+	id := uuid.New()
+	return id.String()
 }
 
 func HashPassword(ctx context.Context, password string, logger utils.Logger) (string, error) {
