@@ -2,12 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"os"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	// "github.com/golang-migrate/migrate"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -52,31 +49,16 @@ func main() {
 	logger.Info(context.Background(), "connected successfully to the database")
 
 	repo := data.NewUserRepository(db, logger)
-	logger.Info(context.Background(), "repo started")
+	logger.Info(context.Background(), "data layer started")
 	service := service.NewUserService(repo, logger)
-	logger.Info(context.Background(), "service started")
+	logger.Info(context.Background(), "service layer started")
 	handlers := handler.NewUserHandler(service, logger)
-	logger.Info(context.Background(), "handler started")
+	logger.Info(context.Background(), "handler layer started")
 
 	router := handler.NewServer()
 
 	router.Router.Use(handler.TimeoutMiddleware(time.Second * 5))
-	router.Router.GET("/home", func(ctx *gin.Context) {
-		fmt.Println("this returns welcome message")
-		ctx.JSON(http.StatusOK, gin.H{"response": "welcome to the home page"})
-	})
-
-	logger.Info(context.Background(), "home endpoint works started")
-	// router.Router.POST("/api/register", func(ctx *gin.Context) {
-	// 	logger.Info(context.Background(), "inside register handler works")
-	// })
-	// router.Router.Use(handler.TimeoutMiddleware(time.Second * 5))
-	// logger.Info(context.Background(), "timeout handler works")
 	router.Router.POST("/api/register", handlers.RegisterUserHandler)
-	// router.Router.POST("/api/register", func(ctx *gin.Context) {
-	// 	logger.Info(context.Background(), "inside register handler works")
-	// })
-	// logger.Info(context.Background(), "register handler works")
 	router.Router.POST("/api/login", handlers.LoginUserHandler)
 	router.Router.POST("/api/refresh", handlers.RefreshTokenHandler)
 

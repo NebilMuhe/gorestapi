@@ -31,11 +31,18 @@ services:
   cockroach:
       image: cockroachdb/cockroach:latest
       command: start-single-node --insecure
+      # command: >
+      #   bash -c "
+      #   cockroach start-single-node --insecure &&
+      #   sleep 5 &&
+      #   cockroach sql --insecure -e 'CREATE DATABASE IF NOT EXISTS userstore;'
+      #   "
       ports:
         - 26257:26257
         - 8080:8080
       volumes:
         - cockroach-data:/cockroach/cockroach-data
+      # init: ./init-db.sh
   app:
     build: .
     ports:
