@@ -38,14 +38,15 @@ func main() {
 	PORT := os.Getenv("PORT")
 	DB_SOURCE := os.Getenv("DB_SOURCE")
 
-	runDBMigration(MIGRATION_URL, DB_SOURCE, logger)
-
 	db, err := data.ConnectDB(DB_URI)
 	if err != nil {
 		logger.Error(context.Background(), "unable to connect to database", zap.Error(err))
 		return
 	}
 	defer db.Close(context.Background())
+
+	runDBMigration(MIGRATION_URL, DB_SOURCE, logger)
+
 	logger.Info(context.Background(), "connected successfully to the database")
 
 	repo := data.NewUserRepository(db, logger)
@@ -57,7 +58,7 @@ func main() {
 
 	router := handler.NewServer()
 
-	router.Router.Use(handler.TimeoutMiddleware(time.Second * 5))
+	router.Router.Use(handler.TimeoutMiddleware(time.Second * 15))
 	router.Router.POST("/api/register", handlers.RegisterUserHandler)
 	router.Router.POST("/api/login", handlers.LoginUserHandler)
 	router.Router.POST("/api/refresh", handlers.RefreshTokenHandler)

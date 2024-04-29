@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -91,7 +90,6 @@ func (u *userHandler) LoginUserHandler(ctx *gin.Context) {
 	go func() {
 		var user models.UserLogin
 		if err := ctx.ShouldBindJSON(&user); err != nil {
-			fmt.Println()
 			u.logger.Error(contx, "invalid input", zap.Error(err))
 			err = errors.ErrBadRequest.Wrap(err, "invalid input")
 			errChan <- err

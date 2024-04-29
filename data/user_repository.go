@@ -46,6 +46,11 @@ func ConnectDB(url string) (*pgx.Conn, error) {
 		return nil, err
 	}
 
+	_, err = db.Exec(context.Background(), "CREATE DATABASE IF NOT EXISTS userstore;")
+	if err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }
 

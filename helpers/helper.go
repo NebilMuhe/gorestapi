@@ -147,6 +147,7 @@ func VerifyToken(ctx context.Context, tokenString string, logger utils.Logger) e
 }
 
 func ExtractUsernameAndID(ctx context.Context, tokenString string, logger utils.Logger) (map[string]string, error) {
+
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
 	var err error
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
